@@ -4,7 +4,7 @@
   "version": "0.2.0",
   "config_flow": false,
   "documentation": "https://github.com/hbrennhaeuser/homeassistant_integration_ntfy",
-  "requirements": ["requests==2.25.1"],
+  "requirements": ["requests"],
   "ssdp": [],
   "zeroconf": [],
   "homekit": {},
