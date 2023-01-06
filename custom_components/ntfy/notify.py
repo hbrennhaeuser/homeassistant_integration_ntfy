@@ -64,9 +64,9 @@ class NtfyNotificationService(BaseNotificationService):
         data=kwargs.get(ATTR_DATA,[])
 
         
-        req_data=message
+        req_data=message.encode('utf-8')
         req_headers={
-            "Title": title
+            "Title": title.encode('utf-8')
         }
 
         if "tags" in data:
