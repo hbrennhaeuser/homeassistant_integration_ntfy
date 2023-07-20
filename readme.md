@@ -1,5 +1,6 @@
 # Notify via ntfy.sh / selfhosted ntfy-server
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration) ![hacs_validation](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/actions/workflows/hacs_validation.yml/badge.svg?branch=main) ![validate_with_hassfest](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/actions/workflows/validate_with_hassfest.yml/badge.svg?branch=main)
+
 
 This custom component allows you to send notifications through [ntfy.sh](https://ntfy.sh/) or selfhosted ntfy-servers.
 Authentication and some additional ntfy-features like tags are supported.
