@@ -1,3 +1,4 @@
 {
-    "name": "Notify via ntfy.sh / selfhosted ntfy-server"
+    "name": "Notify via ntfy.sh / selfhosted ntfy-server",
+    "render_readme": true
 }
