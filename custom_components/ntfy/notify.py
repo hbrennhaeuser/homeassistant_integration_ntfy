@@ -68,33 +68,24 @@ class NtfyNotificationService(BaseNotificationService):
         req_headers={
             "Title": title.encode('utf-8')
         }
-
-        if "tags" in data:
-            req_headers["Tags"] = data["tags"]
         
-        
+        if data is not None:
+            if "tags" in data:
+                req_headers["Tags"] = data["tags"]
 
-
-        if "priority" in data:
-            schema_click = ['max','urgent','high','default','low','min']
-
-            if str(data["priority"]) not in schema_click:
-                raise SyntaxError('Incorrect value for attribute priority given')
-            
-            req_headers["Priority"] = data["priority"]
-        
-
-
-
-        if "click" in data:
-            schema_url = vol.Schema(vol.Url())
-   
-            try:
-                schema_url(data["click"])
-            except vol.MultipleInvalid as e:
-                raise SyntaxError('expected a URL for attribute click')
-
-            req_headers["Click"] = data["click"]
+            if "priority" in data:
+                schema_click = ['max','urgent','high','default','low','min']
+                if str(data["priority"]) not in schema_click:
+                    raise SyntaxError('Incorrect value for attribute priority given')
+                req_headers["Priority"] = data["priority"]
+    
+            if "click" in data:
+                schema_url = vol.Schema(vol.Url())
+                try:
+                    schema_url(data["click"])
+                except vol.MultipleInvalid as e:
+                    raise SyntaxError('expected a URL for attribute click')
+                req_headers["Click"] = data["click"]
         
         
         req_verify=True
