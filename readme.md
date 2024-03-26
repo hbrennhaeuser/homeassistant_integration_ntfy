@@ -79,6 +79,6 @@ data:
     topic: myothertopic
 ```
 
-Currently the ntfy-features tags, priority and click are supported. Please refer to the [ntfy.sh documentation](https://docs.ntfy.sh/publish) for more information about those features.
+Currently the ntfy-features tags, priority and click are supported. Please refer to the [ntfy documentation](https://docs.ntfy.sh/publish) for more information about those features.
 
 You can override the default topic by providing a topic in the notification data.
