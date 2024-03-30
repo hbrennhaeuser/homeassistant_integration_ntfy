@@ -110,7 +110,7 @@ class NtfyNotificationService(BaseNotificationService):
         req_data=message.encode('utf-8')
 
         if title is not None:
-            req_headers["Title"] = title
+            req_headers["Title"] = title.encode('utf-8')
 
         if "tags" in data:
             # TODO: validate tag format
