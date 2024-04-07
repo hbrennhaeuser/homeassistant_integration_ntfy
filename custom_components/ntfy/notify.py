@@ -153,7 +153,7 @@ class NtfyNotificationService(BaseNotificationService):
                 schema_url(data["click"])
             except vol.MultipleInvalid as e:
                 raise SyntaxError('expected a URL for attribute click') from e
-            req_headers["Click"] = data["click"]
+            req_headers["Click"] = data["click"].encode('utf-8')
 
         # Attachments
         if "attach_url" in data and "attach_file" in data:
@@ -166,11 +166,11 @@ class NtfyNotificationService(BaseNotificationService):
 
         if "attachment_filename" in data:
             # TODO: syntax validation
-            req_headers["Filename"] = data["attachment_filename"]
+            req_headers["Filename"] = data["attachment_filename"].encode('utf-8')
 
         if "attach_url" in data:
             # TODO: syntax validation
-            req_headers["Attach"] = data["attach_url"]
+            req_headers["Attach"] = data["attach_url"].encode('utf-8')
 
         if "attach_file" in data:
             if not os.access(data['attach_file'], os.R_OK):
@@ -190,7 +190,7 @@ class NtfyNotificationService(BaseNotificationService):
             if "attachment_compress_image" in data:
                 raise NotImplementedError("Image compression is not implemented yet!")
 
-            elif "attachment_compress_file" in data:                
+            elif "attachment_compress_file" in data:
                 attach_file_content_compressed = BytesIO()
 
                 with zipfile.ZipFile(attach_file_content_compressed, mode="a", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zip_file:
