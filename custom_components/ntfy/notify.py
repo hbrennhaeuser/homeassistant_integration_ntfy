@@ -160,7 +160,7 @@ class NtfyNotificationService(BaseNotificationService):
 
     def _compress_file(self, data, attach_file_content, attach_file_name):
         attach_file_content_compressed = BytesIO()
-        with zipfile.ZipFile(attach_file_content_compressed, mode="a", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zip_file:
+        with zipfile.ZipFile(attach_file_content_compressed, mode="a", compression=zipfile.ZIP_DEFLATED, compresslevel=data['attachment_compress_file']) as zip_file:
             zip_file.writestr(attach_file_name, attach_file_content.getvalue())
         return attach_file_content_compressed.getvalue()
 
@@ -205,7 +205,10 @@ class NtfyNotificationService(BaseNotificationService):
 
         if 'attachment_compress_image' in data and (data['attachment_compress_image'] < 0 or data['attachment_compress_image'] > 100):
             raise ServiceValidationError("attachment_compress_image < 0 or > 100")
-        
+
+        if 'attachment_compress_file' in data and (not isinstance(data['attachment_compress_file'],int) or data['attachment_compress_file'] < 0 or data['attachment_compress_file'] > 9):
+            raise ServiceValidationError("attachment_compress_file invalid, not an integer or not between 0 and 9")
+
         if 'attachment_resize_image' in data and not re.match(r'^[0-9]+(px|%)$', data['attachment_resize_image']):
             raise ServiceValidationError("attachment_compress_image format is not valid")
         
@@ -279,7 +282,7 @@ class NtfyNotificationService(BaseNotificationService):
             if "attachment_compress_image" in data:
                 attach_file_content = self._compress_image(data, attach_file_content)
 
-            elif "attachment_compress_file" in data and data['attachment_compress_file'] is True:
+            elif "attachment_compress_file" in data:
                 attach_file_content = self._compress_file(data, attach_file_content, attach_file_name)
 
 
