@@ -130,8 +130,33 @@ class NtfyNotificationService(BaseNotificationService):
             # img.resize()
             img = img.convert('RGB')
             img.save(attach_image_content_compressed, quality=data['attachment_compress_image'], format='jpeg')
-        return attach_image_content_compressed.getvalue()
+        return attach_image_content_compressed
+    
+    def _resize_image(self, data, attach_file_content):
+        attach_image_content_resized = BytesIO()
+        with Image.open(attach_file_content) as img:
+            img = img.convert('RGB')
+            width, height = img.size
+            factor = height/width
 
+            search = re.search('^([0-9]+)((?:px|%))$', data['attachment_resize_image'])
+            value = int(search.group(1))/100
+            unit = search.group(2)
+
+            width_new = width
+            height_new = height
+
+            if unit == 'px':
+                width_new = value
+            elif unit == '%':
+                width_new = round(width*value,0)
+
+            height_new = round(width_new * factor,0)
+
+            img = img.resize((int(width_new), int(height_new)))
+
+            img.save(attach_image_content_resized, quality=100, format='jpeg')
+        return attach_image_content_resized
 
     def _compress_file(self, data, attach_file_content, attach_file_name):
         attach_file_content_compressed = BytesIO()
@@ -180,6 +205,11 @@ class NtfyNotificationService(BaseNotificationService):
 
         if 'attachment_compress_image' in data and (data['attachment_compress_image'] < 0 or data['attachment_compress_image'] > 100):
             raise ServiceValidationError("attachment_compress_image < 0 or > 100")
+        
+        if 'attachment_resize_image' in data and not re.match(r'^[0-9]+(px|%)$', data['attachment_resize_image']):
+            raise ServiceValidationError("attachment_compress_image format is not valid")
+        
+        # TODO: Catch attachment_compress_image and attachment_resize_image being used with non-image files
 
         return True
 
@@ -226,7 +256,6 @@ class NtfyNotificationService(BaseNotificationService):
             req_headers["Click"] = data["click"].encode('utf-8')
 
         # Attachments        
-        # TODO: Warn that file-compression will be ignored if image-compression is specified.
         if "attachment_filename" in data:
             # TODO: syntax validation
             req_headers["Filename"] = data["attachment_filename"].encode('utf-8')
@@ -244,12 +273,17 @@ class NtfyNotificationService(BaseNotificationService):
             with open(data['attach_file'], mode='rb') as file:
                 attach_file_content = BytesIO(file.read())
 
+            if "attachment_resize_image" in data:
+                attach_file_content = self._resize_image(data, attach_file_content)
+
             if "attachment_compress_image" in data:
-                req_data = self._compress_image(data, attach_file_content)
+                attach_file_content = self._compress_image(data, attach_file_content)
+
             elif "attachment_compress_file" in data and data['attachment_compress_file'] is True:
-                req_data = self._compress_file(data, attach_file_content, attach_file_name)
-            else:
-                req_data = attach_file_content.getvalue()
+                attach_file_content = self._compress_file(data, attach_file_content, attach_file_name)
+
+
+            req_data = attach_file_content.getvalue()
 
         # --
         req_headers['Authorization'] = self._get_auth()
