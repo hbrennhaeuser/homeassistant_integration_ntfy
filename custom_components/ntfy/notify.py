@@ -27,7 +27,7 @@ from PIL import Image
 CONF_TOPIC = 'topic'
 CONF_ALLOW_TOPIC_OVERRIDE = 'allow_topic_override'
 CONF_TOKEN = 'token'
-CONF_ATTACH_FILE_MAXSIZE = 'attach_file_maxsize'
+CONF_ATTACHMENT_MAXSIZE = 'attachment_maxsize'
 
 from homeassistant.const import (
     CONF_PASSWORD,
@@ -69,10 +69,10 @@ class NtfyNotificationService(BaseNotificationService):
         if config.get(CONF_ALLOW_TOPIC_OVERRIDE) is not None:
             self.allow_topic_override = bool(config.get(CONF_ALLOW_TOPIC_OVERRIDE))
 
-        self.attach_file_maxsize = 15728640
-        if config.get(CONF_ATTACH_FILE_MAXSIZE) is not None:
+        self.attachment_maxsize = 15728640
+        if config.get(CONF_ATTACHMENT_MAXSIZE) is not None:
             # TODO: Syntax validation
-            self.attach_file_maxsize = self._parse_attach_file_maxsize(config.get(CONF_ATTACH_FILE_MAXSIZE))
+            self.attachment_maxsize = self._parse_attachment_maxsize(config.get(CONF_ATTACHMENT_MAXSIZE))
 
 
         self.auth = False
@@ -98,11 +98,11 @@ class NtfyNotificationService(BaseNotificationService):
                     raise ServiceValidationError('Authentication token is missing')
                 self.token = config.get(CONF_TOKEN)
 
-    def _parse_attach_file_maxsize(self, size=None):
-        attach_file_maxsize_bytes = None
+    def _parse_attachment_maxsize(self, size=None):
+        attachment_maxsize_bytes = None
 
         if isinstance(size,int):
-            attach_file_maxsize_bytes = size
+            attachment_maxsize_bytes = size
         elif isinstance(size, str):
             search = re.search('^([0-9]+)([a-zA-Z]{0,3})$', size)
             value = int(search.group(1))
@@ -110,18 +110,18 @@ class NtfyNotificationService(BaseNotificationService):
 
             match unit:
                 case 'b' | 'B':
-                    attach_file_maxsize_bytes = value
+                    attachment_maxsize_bytes = value
 
                 case 'k' | 'K':
-                    attach_file_maxsize_bytes = value * 1024
+                    attachment_maxsize_bytes = value * 1024
 
                 case 'm' | 'M':
-                    attach_file_maxsize_bytes = value * (1024 ** 2)
+                    attachment_maxsize_bytes = value * (1024 ** 2)
 
                 case _:
                     raise ServiceValidationError(f"Unknown unit {unit}")
 
-        return attach_file_maxsize_bytes
+        return attachment_maxsize_bytes
 
 
     def _compress_image(self, data, attach_file_content):
@@ -142,8 +142,8 @@ class NtfyNotificationService(BaseNotificationService):
 
     def _validate_filesize(self, data):
         attach_file_size = os.stat(data['attach_file']).st_size
-        if self.attach_file_maxsize is not None and attach_file_size > self.attach_file_maxsize:
-            raise HomeAssistantError(f"Specified file '{data['attach_file']}', {attach_file_size}B is larger than specified max size {self.attach_file_maxsize}B")
+        if self.attachment_maxsize is not None and attach_file_size > self.attachment_maxsize:
+            raise HomeAssistantError(f"Specified file '{data['attach_file']}', {attach_file_size}B is larger than specified max size {self.attachment_maxsize}B")
         return True
 
     def _validate_message_params(self, data):
