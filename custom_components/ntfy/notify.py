@@ -69,10 +69,11 @@ class NtfyNotificationService(BaseNotificationService):
         if config.get(CONF_ALLOW_TOPIC_OVERRIDE) is not None:
             self.allow_topic_override = bool(config.get(CONF_ALLOW_TOPIC_OVERRIDE))
 
-        self.attach_file_maxsize = None
+        self.attach_file_maxsize = 15728640
         if config.get(CONF_ATTACH_FILE_MAXSIZE) is not None:
             # TODO: Syntax validation
             self.attach_file_maxsize = self._parse_attach_file_maxsize(config.get(CONF_ATTACH_FILE_MAXSIZE))
+
 
         self.auth = False
         if config.get(CONF_AUTHENTICATION) is not None:
