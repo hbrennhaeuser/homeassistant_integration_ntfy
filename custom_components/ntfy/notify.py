@@ -16,11 +16,16 @@ import requests
 import voluptuous as vol
 import urllib.parse
 from base64 import b64encode
+import os
+import zipfile
+from io import BytesIO
+import re
 
 
 CONF_TOPIC = 'topic'
 CONF_ALLOW_TOPIC_OVERRIDE = 'allow_topic_override'
 CONF_TOKEN = 'token'
+CONF_ATTACH_FILE_MAXSIZE = 'attach_file_maxsize'
 
 from homeassistant.const import (
     CONF_PASSWORD,
@@ -62,6 +67,10 @@ class NtfyNotificationService(BaseNotificationService):
         if config.get(CONF_ALLOW_TOPIC_OVERRIDE) is not None:
             self.allow_topic_override = bool(config.get(CONF_ALLOW_TOPIC_OVERRIDE))
 
+        self.attach_file_maxsize = None
+        if config.get(CONF_ATTACH_FILE_MAXSIZE) is not None:
+            self.attach_file_maxsize = self._parse_attach_file_maxsize(config.get(CONF_ATTACH_FILE_MAXSIZE))
+
         self.auth = False
         if config.get(CONF_AUTHENTICATION) is not None:
             schema_authentication = ['user-pass','token']
@@ -85,7 +94,23 @@ class NtfyNotificationService(BaseNotificationService):
                     raise SyntaxError('Authentication token is missing')
                 self.token = config.get(CONF_TOKEN)
 
+    def _parse_attach_file_maxsize(self, size=None):
+        attach_file_maxsize_bytes = None
+        search = re.search('^([0-9]+)([a-zA-Z]{1,3})$', size)
+        value = int(search.group(1))
+        unit = search.group(2)
 
+        match unit:
+            case 'k' | 'K':
+                attach_file_maxsize_bytes = value * 1024
+
+            case 'm' | 'M':
+                attach_file_maxsize_bytes = value * 1024^2
+
+            case _:
+                raise ValueError("Unknown unit %s" % (unit))
+
+        return attach_file_maxsize_bytes
 
     def send_message(self, message="", **kwargs):
         """Send message"""
@@ -107,7 +132,7 @@ class NtfyNotificationService(BaseNotificationService):
         url=str(self.url) + '/' + urllib.parse.quote(str(topic))
 
         # --
-        req_data=message.encode('utf-8')
+        req_headers['Message'] = message.encode('utf-8')
 
         if title is not None:
             req_headers["Title"] = title.encode('utf-8')
@@ -130,6 +155,52 @@ class NtfyNotificationService(BaseNotificationService):
                 raise SyntaxError('expected a URL for attribute click') from e
             req_headers["Click"] = data["click"]
 
+        # Attachments
+        if "attach_url" in data and "attach_file" in data:
+            raise SyntaxError("attach_url and attach_file cannot be specified at the same time!")
+        
+        if "attachment_filename" in data and not ("attach_url" in data or "attach_file" in data):
+            raise SyntaxError("attachment_filename cannot be specified without an attachment!")
+        
+        # TODO: Warn that file-compression will be ignored if image-compression is specified.
+
+        if "attachment_filename" in data:
+            # TODO: syntax validation
+            req_headers["Filename"] = data["attachment_filename"]
+
+        if "attach_url" in data:
+            # TODO: syntax validation
+            req_headers["Attach"] = data["attach_url"]
+
+        if "attach_file" in data:
+            if not os.access(data['attach_file'], os.R_OK):
+                raise ValueError("Specified file '%s}' is not readable" % (data['attach_file']))
+
+            attach_file_size = os.stat(data['attach_file']).st_size
+            if self.attach_file_maxsize is not None and attach_file_size > self.attach_file_maxsize:
+                raise ValueError("Specified file '%s', %s is larger than specified max size %s" % (data['attach_file'], attach_file_size,  self.attach_file_maxsize))
+
+            attach_file_name = os.path.basename(data['attach_file'])
+
+            attach_file_content = None
+            with open(data['attach_file'], mode='rb') as file:
+                    attach_file_content = BytesIO(file.read())
+
+            # TODO: Image-compression
+            if "attachment_compress_image" in data:
+                raise NotImplementedError("Image compression is not implemented yet!")
+
+            elif "attachment_compress_file" in data:                
+                attach_file_content_compressed = BytesIO()
+
+                with zipfile.ZipFile(attach_file_content_compressed, mode="a", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zip_file:
+                    zip_file.writestr(attach_file_name, attach_file_content.getvalue())
+
+                req_data = attach_file_content_compressed.getvalue()
+
+            else:
+                req_data = attach_file_content.getvalue()
+
 
         # --
         if self.auth == 'user-pass':
@@ -137,7 +208,7 @@ class NtfyNotificationService(BaseNotificationService):
         elif self.auth == 'token':
             req_headers['Authorization'] = 'Bearer ' + self.token
 
-        requests.post(
+        requests.put(
             url=url,
             data=req_data,
             headers=req_headers,
