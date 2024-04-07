@@ -103,7 +103,7 @@ class NtfyNotificationService(BaseNotificationService):
 
         if isinstance(size,int):
             attach_file_maxsize_bytes = size
-        elif isinstance(size, String):
+        elif isinstance(size, str):
             search = re.search('^([0-9]+)([a-zA-Z]{0,3})$', size)
             value = int(search.group(1))
             unit = search.group(2)
@@ -117,10 +117,10 @@ class NtfyNotificationService(BaseNotificationService):
 
                 case 'm' | 'M':
                     attach_file_maxsize_bytes = value * (1024 ** 2)
-            
+
                 case _:
-                    raise ServiceValidationError("Unknown unit %s" % (unit))
-            
+                    raise ServiceValidationError(f"Unknown unit {unit}")
+
         return attach_file_maxsize_bytes
 
 
@@ -143,9 +143,9 @@ class NtfyNotificationService(BaseNotificationService):
     def _validate_filesize(self, data):
         attach_file_size = os.stat(data['attach_file']).st_size
         if self.attach_file_maxsize is not None and attach_file_size > self.attach_file_maxsize:
-            raise HomeAssistantError("Specified file '%s', %sB is larger than specified max size %sB" % (data['attach_file'], attach_file_size,  self.attach_file_maxsize))
+            raise HomeAssistantError(f"Specified file '{data['attach_file']}', {attach_file_size}B is larger than specified max size {self.attach_file_maxsize}B")
         return True
-    
+
     def _validate_message_params(self, data):
         if "topic" in data and not self.allow_topic_override:
             raise ServiceValidationError('Trying to override topic without allow_topic_override being True')
@@ -168,16 +168,16 @@ class NtfyNotificationService(BaseNotificationService):
 
         if "attach_url" in data and "attach_file" in data:
             raise ServiceValidationError("attach_url and attach_file cannot be specified at the same time!")
-        
+
         if 'attach_file' in data and not os.access(data['attach_file'], os.R_OK):
-            raise HomeAssistantError("Specified file '%s' is not readable" % (data['attach_file']))
-        
+            raise HomeAssistantError(f"Specified file '{data['attach_file']}' is not readable")
+
         if "attachment_filename" in data and not ("attach_url" in data or "attach_file" in data):
             raise ServiceValidationError("attachment_filename cannot be specified without an attachment!")
-        
+
         if 'attachment_compress_image' in data and not isinstance(data['attachment_compress_image'], int):
             raise ServiceValidationError("attachment_compress_image is not an integer")
-        
+
         if 'attachment_compress_image' in data and (data['attachment_compress_image'] < 0 or data['attachment_compress_image'] > 100):
             raise ServiceValidationError("attachment_compress_image < 0 or > 100")
 
@@ -187,7 +187,7 @@ class NtfyNotificationService(BaseNotificationService):
         topic = self.topic
         if "topic" in data:
             topic=data["topic"]
-        
+
         return topic
 
     def _get_auth(self):
@@ -210,7 +210,7 @@ class NtfyNotificationService(BaseNotificationService):
         self._validate_message_params(data)
         url=str(self.url) + '/' + urllib.parse.quote(self._get_topic(data))
         req_headers['Message'] = message.encode('utf-8')
-        
+
         # --
 
         if title is not None:
