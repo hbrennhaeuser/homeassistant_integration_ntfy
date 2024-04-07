@@ -22,7 +22,7 @@ import os
 import zipfile
 from io import BytesIO
 import re
-
+from PIL import Image
 
 CONF_TOPIC = 'topic'
 CONF_ALLOW_TOPIC_OVERRIDE = 'allow_topic_override'
@@ -188,9 +188,18 @@ class NtfyNotificationService(BaseNotificationService):
             with open(data['attach_file'], mode='rb') as file:
                     attach_file_content = BytesIO(file.read())
 
-            # TODO: Image-compression
             if "attachment_compress_image" in data:
-                raise NotImplementedError("Image compression is not implemented yet!")
+                if not isinstance(data['attachment_compress_image'], int):
+                    raise ServiceValidationError("attachment_compress_image is not an integer")
+                if data['attachment_compress_image'] < 0 or data['attachment_compress_image'] > 100:
+                    raise ServiceValidationError("attachment_compress_image < 0 or > 100")
+
+                attach_image_content_compressed = BytesIO()
+                with Image.open(attach_file_content) as img:
+                    # img.resize()
+                    img = img.convert('RGB')
+                    img.save(attach_image_content_compressed, quality=data['attachment_compress_image'], format='jpeg')
+                req_data = attach_image_content_compressed.getvalue()
 
             elif "attachment_compress_file" in data:
                 attach_file_content_compressed = BytesIO()
