@@ -107,7 +107,7 @@ class NtfyNotificationService(BaseNotificationService):
                 attach_file_maxsize_bytes = value * 1024
 
             case 'm' | 'M':
-                attach_file_maxsize_bytes = value * 1024^2
+                attach_file_maxsize_bytes = value * (1024 ** 2)
 
             case _:
                 raise ServiceValidationError("Unknown unit %s" % (unit))
