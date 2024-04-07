@@ -71,6 +71,7 @@ class NtfyNotificationService(BaseNotificationService):
 
         self.attach_file_maxsize = None
         if config.get(CONF_ATTACH_FILE_MAXSIZE) is not None:
+            # TODO: Syntax validation
             self.attach_file_maxsize = self._parse_attach_file_maxsize(config.get(CONF_ATTACH_FILE_MAXSIZE))
 
         self.auth = False
@@ -134,7 +135,7 @@ class NtfyNotificationService(BaseNotificationService):
     def _validate_filesize(self, data):
         attach_file_size = os.stat(data['attach_file']).st_size
         if self.attach_file_maxsize is not None and attach_file_size > self.attach_file_maxsize:
-            raise HomeAssistantError("Specified file '%s', %s is larger than specified max size %s" % (data['attach_file'], attach_file_size,  self.attach_file_maxsize))
+            raise HomeAssistantError("Specified file '%s', %sB is larger than specified max size %sB" % (data['attach_file'], attach_file_size,  self.attach_file_maxsize))
         return True
     
     def _validate_message_params(self, data):
@@ -237,7 +238,7 @@ class NtfyNotificationService(BaseNotificationService):
 
             if "attachment_compress_image" in data:
                 req_data = self._compress_image(data, attach_file_content)
-            elif "attachment_compress_file" in data:
+            elif "attachment_compress_file" in data and data['attachment_compress_file'] is True:
                 req_data = self._compress_file(data, attach_file_content, attach_file_name)
             else:
                 req_data = attach_file_content.getvalue()
