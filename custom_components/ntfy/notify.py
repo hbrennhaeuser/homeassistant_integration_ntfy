@@ -9,6 +9,8 @@ from homeassistant.components.notify import (
     BaseNotificationService,
 )
 import homeassistant.helpers.config_validation as cv
+from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError
 
 from tokenize import String
 from requests.auth import HTTPBasicAuth
@@ -57,7 +59,7 @@ class NtfyNotificationService(BaseNotificationService):
         try:
             vol.Schema(vol.Url())(self.url)
         except vol.MultipleInvalid as e:
-            raise SyntaxError('url syntax invalid') from e
+            raise ServiceValidationError('url syntax invalid') from e
 
         self.verifyssl = True
         if config.get(CONF_VERIFY_SSL) is not None:
@@ -84,14 +86,14 @@ class NtfyNotificationService(BaseNotificationService):
         if self.auth is not False:
             if self.auth == 'user-pass':
                 if config.get(CONF_USERNAME) is None:
-                    raise SyntaxError("Authentication username is missing")
+                    raise ServiceValidationError("Authentication username is missing")
                 if config.get(CONF_PASSWORD) is None:
-                    raise SyntaxError("Authentication password is missing")
+                    raise ServiceValidationError("Authentication password is missing")
                 self.username = config.get(CONF_USERNAME)
                 self.password = config.get(CONF_PASSWORD)
             elif self.auth == 'token':
                 if config.get(CONF_TOKEN) is None:
-                    raise SyntaxError('Authentication token is missing')
+                    raise ServiceValidationError('Authentication token is missing')
                 self.token = config.get(CONF_TOKEN)
 
     def _parse_attach_file_maxsize(self, size=None):
@@ -108,7 +110,7 @@ class NtfyNotificationService(BaseNotificationService):
                 attach_file_maxsize_bytes = value * 1024^2
 
             case _:
-                raise ValueError("Unknown unit %s" % (unit))
+                raise ServiceValidationError("Unknown unit %s" % (unit))
 
         return attach_file_maxsize_bytes
 
@@ -126,9 +128,9 @@ class NtfyNotificationService(BaseNotificationService):
             if self.allow_topic_override:
                 topic=data["topic"]
             else:
-                raise PermissionError('Trying to override topic without allow_topic_override being True')
+                raise ServiceValidationError('Trying to override topic without allow_topic_override being True')
         if topic is None:
-            raise SyntaxError("No topic specified")
+            raise ServiceValidationError("No topic specified")
         url=str(self.url) + '/' + urllib.parse.quote(str(topic))
 
         # --
@@ -144,7 +146,7 @@ class NtfyNotificationService(BaseNotificationService):
         if "priority" in data:
             schema_priority = ['max','urgent','high','default','low','min']
             if str(data["priority"]) not in schema_priority:
-                raise SyntaxError('Incorrect value for attribute priority given')
+                raise ServiceValidationError('Incorrect value for attribute priority given')
             req_headers["Priority"] = data["priority"]
 
         if "click" in data:
@@ -157,10 +159,10 @@ class NtfyNotificationService(BaseNotificationService):
 
         # Attachments
         if "attach_url" in data and "attach_file" in data:
-            raise SyntaxError("attach_url and attach_file cannot be specified at the same time!")
+            raise ServiceValidationError("attach_url and attach_file cannot be specified at the same time!")
         
         if "attachment_filename" in data and not ("attach_url" in data or "attach_file" in data):
-            raise SyntaxError("attachment_filename cannot be specified without an attachment!")
+            raise ServiceValidationError("attachment_filename cannot be specified without an attachment!")
         
         # TODO: Warn that file-compression will be ignored if image-compression is specified.
 
@@ -174,11 +176,11 @@ class NtfyNotificationService(BaseNotificationService):
 
         if "attach_file" in data:
             if not os.access(data['attach_file'], os.R_OK):
-                raise ValueError("Specified file '%s}' is not readable" % (data['attach_file']))
+                raise HomeAssistantError("Specified file '%s' is not readable" % (data['attach_file']))
 
             attach_file_size = os.stat(data['attach_file']).st_size
             if self.attach_file_maxsize is not None and attach_file_size > self.attach_file_maxsize:
-                raise ValueError("Specified file '%s', %s is larger than specified max size %s" % (data['attach_file'], attach_file_size,  self.attach_file_maxsize))
+                raise HomeAssistantError("Specified file '%s', %s is larger than specified max size %s" % (data['attach_file'], attach_file_size,  self.attach_file_maxsize))
 
             attach_file_name = os.path.basename(data['attach_file'])
 
