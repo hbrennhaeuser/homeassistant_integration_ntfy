@@ -99,19 +99,26 @@ class NtfyNotificationService(BaseNotificationService):
 
     def _parse_attach_file_maxsize(self, size=None):
         attach_file_maxsize_bytes = None
-        search = re.search('^([0-9]+)([a-zA-Z]{1,3})$', size)
-        value = int(search.group(1))
-        unit = search.group(2)
 
-        match unit:
-            case 'k' | 'K':
-                attach_file_maxsize_bytes = value * 1024
+        if isinstance(size,int):
+            attach_file_maxsize_bytes = size
+        elif isinstance(size, String):
+            search = re.search('^([0-9]+)([a-zA-Z]{0,3})$', size)
+            value = int(search.group(1))
+            unit = search.group(2)
 
-            case 'm' | 'M':
-                attach_file_maxsize_bytes = value * (1024 ** 2)
+            match unit:
+                case 'b' | 'B':
+                    attach_file_maxsize_bytes = value
 
-            case _:
-                raise ServiceValidationError("Unknown unit %s" % (unit))
+                case 'k' | 'K':
+                    attach_file_maxsize_bytes = value * 1024
+
+                case 'm' | 'M':
+                    attach_file_maxsize_bytes = value * (1024 ** 2)
+            
+                case _:
+                    raise ServiceValidationError("Unknown unit %s" % (unit))
             
         return attach_file_maxsize_bytes
 
