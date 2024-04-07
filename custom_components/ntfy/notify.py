@@ -192,13 +192,16 @@ class NtfyNotificationService(BaseNotificationService):
                 raise ServiceValidationError('expected a URL for attribute click') from e
 
         if "attach_url" in data and "attach_file" in data:
-            raise ServiceValidationError("attach_url and attach_file cannot be specified at the same time!")
+            raise ServiceValidationError("attach_url and attach_file cannot be specified at the same time")
 
         if 'attach_file' in data and not os.access(data['attach_file'], os.R_OK):
             raise HomeAssistantError(f"Specified file '{data['attach_file']}' is not readable")
 
         if "attachment_filename" in data and not ("attach_url" in data or "attach_file" in data):
-            raise ServiceValidationError("attachment_filename cannot be specified without an attachment!")
+            raise ServiceValidationError("attachment_filename cannot be specified without an attachment")
+        
+        if "attach_file" not in data and ( 'attachment_compress_image' in data or 'attachment_compress_file' in data or 'attachment_resize_image' in data):
+            raise ServiceValidationError("attachment_compress_image, attachment_compress_file, attachment_resize_image cannot be specified without attach_file")
 
         if 'attachment_compress_image' in data and not isinstance(data['attachment_compress_image'], int):
             raise ServiceValidationError("attachment_compress_image is not an integer")
@@ -206,8 +209,11 @@ class NtfyNotificationService(BaseNotificationService):
         if 'attachment_compress_image' in data and (data['attachment_compress_image'] < 0 or data['attachment_compress_image'] > 100):
             raise ServiceValidationError("attachment_compress_image < 0 or > 100")
 
-        if 'attachment_compress_file' in data and (not isinstance(data['attachment_compress_file'],int) or data['attachment_compress_file'] < 0 or data['attachment_compress_file'] > 9):
-            raise ServiceValidationError("attachment_compress_file invalid, not an integer or not between 0 and 9")
+        if 'attachment_compress_file' in data and not isinstance(data['attachment_compress_file'],int):
+            raise ServiceValidationError("attachment_compress_file is not an integer")
+
+        if 'attachment_compress_file' in data and (data['attachment_compress_file'] < 0 or data['attachment_compress_file'] > 9):
+            raise ServiceValidationError("attachment_compress_file < 0 or > 9")
 
         if 'attachment_resize_image' in data and not re.match(r'^[0-9]+(px|%)$', data['attachment_resize_image']):
             raise ServiceValidationError("attachment_compress_image format is not valid")
