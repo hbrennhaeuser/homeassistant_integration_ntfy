@@ -111,61 +111,113 @@ class NtfyNotificationService(BaseNotificationService):
 
             case _:
                 raise ServiceValidationError("Unknown unit %s" % (unit))
-
+            
         return attach_file_maxsize_bytes
+
+
+    def _compress_image(self, data, attach_file_content):
+        attach_image_content_compressed = BytesIO()
+        with Image.open(attach_file_content) as img:
+            # img.resize()
+            img = img.convert('RGB')
+            img.save(attach_image_content_compressed, quality=data['attachment_compress_image'], format='jpeg')
+        return attach_image_content_compressed.getvalue()
+
+
+    def _compress_file(self, data, attach_file_content, attach_file_name):
+        attach_file_content_compressed = BytesIO()
+        with zipfile.ZipFile(attach_file_content_compressed, mode="a", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zip_file:
+            zip_file.writestr(attach_file_name, attach_file_content.getvalue())
+        return attach_file_content_compressed.getvalue()
+
+
+    def _validate_filesize(self, data):
+        attach_file_size = os.stat(data['attach_file']).st_size
+        if self.attach_file_maxsize is not None and attach_file_size > self.attach_file_maxsize:
+            raise HomeAssistantError("Specified file '%s', %s is larger than specified max size %s" % (data['attach_file'], attach_file_size,  self.attach_file_maxsize))
+        return True
+    
+    def _validate_message_params(self, data):
+        if "topic" in data and not self.allow_topic_override:
+            raise ServiceValidationError('Trying to override topic without allow_topic_override being True')
+        
+        if self.topic is None and 'topic' not in data:
+            raise ServiceValidationError("No topic specified")
+
+        # TODO: validate tag format
+
+        schema_priority = ['max','urgent','high','default','low','min']
+        if "priority" in data and str(data["priority"]) not in schema_priority:
+                raise ServiceValidationError('Incorrect value for attribute priority given')
+
+        if 'click' in data:
+            schema_url = vol.Schema(vol.Url())
+            try:
+                schema_url(data["click"])
+            except vol.MultipleInvalid as e:
+                raise ServiceValidationError('expected a URL for attribute click') from e
+
+        if "attach_url" in data and "attach_file" in data:
+            raise ServiceValidationError("attach_url and attach_file cannot be specified at the same time!")
+        
+        if 'attach_file' in data and not os.access(data['attach_file'], os.R_OK):
+            raise HomeAssistantError("Specified file '%s' is not readable" % (data['attach_file']))
+        
+        if "attachment_filename" in data and not ("attach_url" in data or "attach_file" in data):
+            raise ServiceValidationError("attachment_filename cannot be specified without an attachment!")
+        
+        if 'attachment_compress_image' in data and not isinstance(data['attachment_compress_image'], int):
+            raise ServiceValidationError("attachment_compress_image is not an integer")
+        
+        if 'attachment_compress_image' in data and (data['attachment_compress_image'] < 0 or data['attachment_compress_image'] > 100):
+            raise ServiceValidationError("attachment_compress_image < 0 or > 100")
+
+        return True
+
+    def _get_topic(self, data):
+        topic = self.topic
+        if "topic" in data:
+            topic=data["topic"]
+        
+        return topic
+
+    def _get_auth(self):
+        auth_header=None
+        if self.auth == 'user-pass':
+            auth_header = 'Basic ' + b64encode( f"{self.username}:{self.password}".encode() ).decode()
+        elif self.auth == 'token':
+            auth_header = 'Bearer ' + self.token
+        return auth_header
 
     def send_message(self, message="", **kwargs):
         """Send message"""
         title=kwargs.get(ATTR_TITLE,ATTR_TITLE_DEFAULT)
         data=kwargs.get(ATTR_DATA,[])
-        topic=self.topic
 
         req_data=None
         req_headers={}
 
         # --
-        if "topic" in data:
-            if self.allow_topic_override:
-                topic=data["topic"]
-            else:
-                raise ServiceValidationError('Trying to override topic without allow_topic_override being True')
-        if topic is None:
-            raise ServiceValidationError("No topic specified")
-        url=str(self.url) + '/' + urllib.parse.quote(str(topic))
-
-        # --
+        self._validate_message_params(data)
+        url=str(self.url) + '/' + urllib.parse.quote(self._get_topic(data))
         req_headers['Message'] = message.encode('utf-8')
+        
+        # --
 
         if title is not None:
             req_headers["Title"] = title.encode('utf-8')
 
         if "tags" in data:
-            # TODO: validate tag format
             req_headers["Tags"] = data["tags"]
 
         if "priority" in data:
-            schema_priority = ['max','urgent','high','default','low','min']
-            if str(data["priority"]) not in schema_priority:
-                raise ServiceValidationError('Incorrect value for attribute priority given')
             req_headers["Priority"] = data["priority"]
 
         if "click" in data:
-            schema_url = vol.Schema(vol.Url())
-            try:
-                schema_url(data["click"])
-            except vol.MultipleInvalid as e:
-                raise SyntaxError('expected a URL for attribute click') from e
             req_headers["Click"] = data["click"].encode('utf-8')
 
-        # Attachments
-        if "attach_url" in data and "attach_file" in data:
-            raise ServiceValidationError("attach_url and attach_file cannot be specified at the same time!")
-        
-        if "attachment_filename" in data and not ("attach_url" in data or "attach_file" in data):
-            raise ServiceValidationError("attachment_filename cannot be specified without an attachment!")
-        
+        # Attachments        
         # TODO: Warn that file-compression will be ignored if image-compression is specified.
-
         if "attachment_filename" in data:
             # TODO: syntax validation
             req_headers["Filename"] = data["attachment_filename"].encode('utf-8')
@@ -175,49 +227,23 @@ class NtfyNotificationService(BaseNotificationService):
             req_headers["Attach"] = data["attach_url"].encode('utf-8')
 
         if "attach_file" in data:
-            if not os.access(data['attach_file'], os.R_OK):
-                raise HomeAssistantError("Specified file '%s' is not readable" % (data['attach_file']))
-
-            attach_file_size = os.stat(data['attach_file']).st_size
-            if self.attach_file_maxsize is not None and attach_file_size > self.attach_file_maxsize:
-                raise HomeAssistantError("Specified file '%s', %s is larger than specified max size %s" % (data['attach_file'], attach_file_size,  self.attach_file_maxsize))
+            self._validate_filesize(data)
 
             attach_file_name = os.path.basename(data['attach_file'])
 
             attach_file_content = None
             with open(data['attach_file'], mode='rb') as file:
-                    attach_file_content = BytesIO(file.read())
+                attach_file_content = BytesIO(file.read())
 
             if "attachment_compress_image" in data:
-                if not isinstance(data['attachment_compress_image'], int):
-                    raise ServiceValidationError("attachment_compress_image is not an integer")
-                if data['attachment_compress_image'] < 0 or data['attachment_compress_image'] > 100:
-                    raise ServiceValidationError("attachment_compress_image < 0 or > 100")
-
-                attach_image_content_compressed = BytesIO()
-                with Image.open(attach_file_content) as img:
-                    # img.resize()
-                    img = img.convert('RGB')
-                    img.save(attach_image_content_compressed, quality=data['attachment_compress_image'], format='jpeg')
-                req_data = attach_image_content_compressed.getvalue()
-
+                req_data = self._compress_image(data, attach_file_content)
             elif "attachment_compress_file" in data:
-                attach_file_content_compressed = BytesIO()
-
-                with zipfile.ZipFile(attach_file_content_compressed, mode="a", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zip_file:
-                    zip_file.writestr(attach_file_name, attach_file_content.getvalue())
-
-                req_data = attach_file_content_compressed.getvalue()
-
+                req_data = self._compress_file(data, attach_file_content, attach_file_name)
             else:
                 req_data = attach_file_content.getvalue()
 
-
         # --
-        if self.auth == 'user-pass':
-            req_headers['Authorization'] = 'Basic ' + b64encode( f"{self.username}:{self.password}".encode() ).decode()
-        elif self.auth == 'token':
-            req_headers['Authorization'] = 'Bearer ' + self.token
+        req_headers['Authorization'] = self._get_auth()
 
         requests.put(
             url=url,
