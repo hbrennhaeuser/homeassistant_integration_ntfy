@@ -97,7 +97,7 @@ class NtfyNotificationService(BaseNotificationService):
         req_headers={}
 
         # --
-        if "topic" in data:
+        if data is not None and "topic" in data:
             if self.allow_topic_override:
                 topic=data["topic"]
             else:
@@ -112,23 +112,24 @@ class NtfyNotificationService(BaseNotificationService):
         if title is not None:
             req_headers["Title"] = title.encode('utf-8')
 
-        if "tags" in data:
-            # TODO: validate tag format
-            req_headers["Tags"] = data["tags"]
+        if data is not None:
+            if "tags" in data:
+                # TODO: validate tag format
+                req_headers["Tags"] = data["tags"]
 
-        if "priority" in data:
-            schema_priority = ['max','urgent','high','default','low','min']
-            if str(data["priority"]) not in schema_priority:
-                raise SyntaxError('Incorrect value for attribute priority given')
-            req_headers["Priority"] = data["priority"]
+            if "priority" in data:
+                schema_priority = ['max','urgent','high','default','low','min']
+                if str(data["priority"]) not in schema_priority:
+                    raise SyntaxError('Incorrect value for attribute priority given')
+                req_headers["Priority"] = data["priority"]
 
-        if "click" in data:
-            schema_url = vol.Schema(vol.Url())
-            try:
-                schema_url(data["click"])
-            except vol.MultipleInvalid as e:
-                raise SyntaxError('expected a URL for attribute click') from e
-            req_headers["Click"] = data["click"]
+            if "click" in data:
+                schema_url = vol.Schema(vol.Url())
+                try:
+                    schema_url(data["click"])
+                except vol.MultipleInvalid as e:
+                    raise SyntaxError('expected a URL for attribute click') from e
+                req_headers["Click"] = data["click"]
 
 
         # --
