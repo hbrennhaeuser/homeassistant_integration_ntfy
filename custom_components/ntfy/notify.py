@@ -24,6 +24,7 @@ from io import BytesIO
 import re
 from PIL import Image
 
+# TODO: Move to const.py
 CONF_TOPIC = 'topic'
 CONF_ALLOW_TOPIC_OVERRIDE = 'allow_topic_override'
 CONF_TOKEN = 'token'
@@ -61,6 +62,7 @@ class NtfyNotificationService(BaseNotificationService):
         except vol.MultipleInvalid as e:
             raise ServiceValidationError('url syntax invalid') from e
 
+        # TODO: Set default values using constants
         self.verifyssl = True
         if config.get(CONF_VERIFY_SSL) is not None:
             self.verifyssl = bool(config.get(CONF_VERIFY_SSL))
@@ -217,7 +219,7 @@ class NtfyNotificationService(BaseNotificationService):
 
         if 'attachment_resize_image' in data and not re.match(r'^[0-9]+(px|%)$', data['attachment_resize_image']):
             raise ServiceValidationError("attachment_compress_image format is not valid")
-        
+
         # TODO: Catch attachment_compress_image and attachment_resize_image being used with non-image files
 
         return True
@@ -240,7 +242,7 @@ class NtfyNotificationService(BaseNotificationService):
     def send_message(self, message="", **kwargs):
         """Send message"""
         title=kwargs.get(ATTR_TITLE,ATTR_TITLE_DEFAULT)
-        data=kwargs.get(ATTR_DATA,[])
+        data=kwargs.get(ATTR_DATA,{})
 
         req_data=None
         req_headers={}
@@ -249,6 +251,8 @@ class NtfyNotificationService(BaseNotificationService):
         self._validate_message_params(data)
         url=str(self.url) + '/' + urllib.parse.quote(self._get_topic(data))
         req_headers['Message'] = message.encode('utf-8')
+
+
 
         # --
 
@@ -264,7 +268,6 @@ class NtfyNotificationService(BaseNotificationService):
         if "click" in data:
             req_headers["Click"] = data["click"].encode('utf-8')
 
-        # Attachments        
         if "attachment_filename" in data:
             # TODO: syntax validation
             req_headers["Filename"] = data["attachment_filename"].encode('utf-8')
