@@ -7,6 +7,7 @@ Authentication and additional ntfy-features like tags are supported.
 ## Installation
 
 The recommended way to install this integration is through HACS.
+
 ### HACS
 
 Add this repository as a custom repository in hacs (category: integration).
@@ -37,7 +38,8 @@ notify:
       topic: 'mytopic'
       url: 'https://ntfy.domain.tld' 
       #verify_ssl: True 
-      allow_topic_override: True 
+      allow_topic_override: True
+      #attachment_maxsize: 300K
 ```
 
 Options:
@@ -52,6 +54,7 @@ Options:
 |url|Yes||url|ntfy-instance-url, example: https://ntfy.domain.tld|
 |verify_ssl|No|True|True/False|Specifies if the certificate of the ntfy-server should be verified. Set to False for self-signed certificates.|
 |allow_topic_override|No|False|True/False|Allow topic-override in each notification-call.|
+|attachment_maxsize|No|15M|filesize, allowed Units B/K/M, default=B, factor=1024 |Set max size for file-attachments. This should match or be below the settings of the ntfy-server. Currently the file-size is checked before any compression is applied. Keep in mind the file is loaded into memory before sending when setting this value.|
 
 ## Usage
 
@@ -65,7 +68,27 @@ data:
   message: Terrace door is open
 ```
 
-Optional parameters/Additional data:
+| Option | Required | Default value | Values | Description |
+| --- | --- | --- | --- | --- |
+|title|No|||Notification title|
+|message|Yes|||Notification message|
+|data/tags|No|||Message tags|
+|data/priority|No|||Message priority|
+|data/click|No||url|URL to open when the notification is clicked|
+|data/topic|No||topic|Override the default topic if allow_topic_override is True|
+|data/attach_url|No||url|URL to file/image|
+|data/attach_file|No||file-path|Path to local file|
+|data/attachment_filename|No||filename|Filename. If compression is active, this applies to the final compressed file.|
+|data/attachment_compress_image|No||int<0-100>|[Only applies to attach_file] Convert image to JPEG. Value is the JPEG-quality|
+|data/attachment_compress_file|No||int<0-9>|[Only applies to attach_file] Compress file to zip using zlib. Value is the zlib-compression-level|
+|data/attachment_resize_image|No||int%/intpx|[Only applies to attach_file] Resize image (and convert to jpeg). Value is either in percent (25%) or px (800px). When using px, you specify the new image width, the height is calculated using the original aspect-ratio.|
+
+
+Please refer to the [ntfy documentation](https://docs.ntfy.sh/publish) for more information about those features.
+
+## Usage examples
+
+Set a title, tags, message-priority, add a click-action and override the default topic:
 
 ```yaml
 service: notify.ntfy_notification
@@ -79,6 +102,15 @@ data:
     topic: myothertopic
 ```
 
-Currently the ntfy-features tags, priority and click are supported. Please refer to the [ntfy documentation](https://docs.ntfy.sh/publish) for more information about those features.
+Attach a local file (image), compress it and override the filename:
 
-You can override the default topic by providing a topic in the notification data.
+```yaml
+service: notify.ntfy_notification
+data:
+  title: Homeassistant Notification
+  message: Movement in backyard detected
+  data:
+    attach_file: /media/local/cam0_latest_detection.png
+    attachment_compress_image: 25
+    attachment_filename: detection.jpg
+```
