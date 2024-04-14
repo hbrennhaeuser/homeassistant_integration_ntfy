@@ -242,7 +242,7 @@ class NtfyNotificationService(BaseNotificationService):
     def send_message(self, message="", **kwargs):
         """Send message"""
         title=kwargs.get(ATTR_TITLE,ATTR_TITLE_DEFAULT)
-        data=kwargs.get(ATTR_DATA,{})
+        data=kwargs.get(ATTR_DATA) or {}
 
         req_data=None
         req_headers={}
