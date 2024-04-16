@@ -129,7 +129,6 @@ class NtfyNotificationService(BaseNotificationService):
     def _compress_image(self, data, attach_file_content):
         attach_image_content_compressed = BytesIO()
         with Image.open(attach_file_content) as img:
-            # img.resize()
             img = img.convert('RGB')
             img.save(attach_image_content_compressed, quality=data['attachment_compress_image'], format='jpeg')
         return attach_image_content_compressed
@@ -142,7 +141,7 @@ class NtfyNotificationService(BaseNotificationService):
             factor = height/width
 
             search = re.search('^([0-9]+)((?:px|%))$', data['attachment_resize_image'])
-            value = int(search.group(1))/100
+            value = int(search.group(1))
             unit = search.group(2)
 
             width_new = width
@@ -151,7 +150,7 @@ class NtfyNotificationService(BaseNotificationService):
             if unit == 'px':
                 width_new = value
             elif unit == '%':
-                width_new = round(width*value,0)
+                width_new = round(width*(value/100),0)
 
             height_new = round(width_new * factor,0)
 
