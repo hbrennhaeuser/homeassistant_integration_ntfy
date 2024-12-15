@@ -216,6 +216,71 @@ class NtfyNotificationService(BaseNotificationService):
 
         return True
 
+    def _build_actions_header_view(self, action):
+        tmp_header: str = ''
+        tmp_header += f"view, {action['label']}"
+        tmp_header +=f", {action.get('url')}"
+        if action.get('clear', False):
+            tmp_header += ', clear=true'
+        return tmp_header
+
+
+    def _build_actions_header_broadcast(self, action):
+        tmp_header:str = ''
+        tmp_header += f"broadcast, {action['label']}"
+
+        if action.get('intent', None):
+            tmp_header +=f", intent={action.get('intent')}"
+
+        if action.get('extras', []):
+            for key, value in action.get('extras').items():
+                tmp_header += f", extras.{key}={value}"
+
+        if action.get('clear', False):
+            tmp_header += ', clear=true'
+
+        return tmp_header
+
+
+    def _build_actions_header_http(self, action):
+        tmp_header:str = ''
+        tmp_header += f"http, {action['label']}, {action['url']}"
+
+        if action.get('method', None):
+            tmp_header +=f", method={action.get('method')}"
+
+        if action.get('headers', []):
+            for key, value in action.get('extras').items():
+                tmp_header += f", headers.{key}={value}"
+
+        if action.get('clear', False):
+            tmp_header += ', clear=true'
+
+        if action.get('body', None):
+            body = action.get('body','').replace('"', '\\"').replace("'", "\\'").replace('=', '\\=')
+            tmp_header += f", body={body}"
+
+        return tmp_header
+
+
+    def _build_actions_header(self, data):
+        header_x_actions: str = ""
+
+        for action in data.get("actions", []):
+            tmp_header: str = ''
+            #TODO: Schema validation
+            #TODO: Ensure escaped special characters
+            if action.get('action', '') == 'view':
+                tmp_header = self._build_actions_header_view(action)
+            elif action.get('action', '') == 'broadcast':
+                tmp_header = self._build_actions_header_broadcast(action)
+            elif action.get('action', '') == 'http':
+                tmp_header = self._build_actions_header_http(action)
+
+            header_x_actions = f"{header_x_actions}; {tmp_header}" if header_x_actions else tmp_header
+
+        return header_x_actions
+
     def _get_topic(self, data):
         topic = self.topic
         if "topic" in data:
@@ -286,8 +351,12 @@ class NtfyNotificationService(BaseNotificationService):
             elif "attachment_compress_file" in data:
                 attach_file_content = self._compress_file(data, attach_file_content, attach_file_name)
 
-
             req_data = attach_file_content.getvalue()
+
+        if "actions" in data:
+            header_x_actions = self._build_actions_header(data)
+            if header_x_actions:
+                req_headers['X-Actions'] = header_x_actions
 
         # --
         req_headers['Authorization'] = self._get_auth()
