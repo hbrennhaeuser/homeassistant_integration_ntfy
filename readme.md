@@ -1,8 +1,15 @@
-# Notify via ntfy.sh / selfhosted ntfy-server
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration) ![hacs_validation](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/actions/workflows/hacs_validation.yml/badge.svg?branch=main) ![validate_with_hassfest](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/actions/workflows/validate_with_hassfest.yml/badge.svg?branch=main)
+# Homeassistant Integration: Notify via ntfy.sh / selfhosted ntfy-server
+[![Release](https://img.shields.io/github/v/release/hbrennhaeuser/homeassistant_integration_ntfy.svg?color=success)](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/releases/latest) [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration) ![hacs_validation](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/actions/workflows/hacs_validation.yml/badge.svg?branch=main) ![validate_with_hassfest](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/actions/workflows/validate_with_hassfest.yml/badge.svg?branch=main)
 
 This custom component allows you to send notifications through [ntfy.sh](https://ntfy.sh/) or selfhosted ntfy-servers.
-Authentication and additional ntfy-features like tags are supported.
+Authentication, tags, image- and file-attachments, click, url and action-buttons are supported.
+
+<p>
+  <img src=".github/images/screenshot-desktop-example1.png" height="320">
+  <img src=".github/images/screenshot-android-1.jpeg" height="320">
+</p>
+
+> **Warning**: The `main` branch is under active development and may not be stable. For the latest stable release, please refer to the [v1.0.2 release](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/releases/tag/v1.0.2) and the [v1.0.2 branch/tag](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/tree/v1.0.2).
 
 ## Installation
 
@@ -82,6 +89,11 @@ data:
 |data/attachment_compress_image|No||int<0-100>|[Only applies to attach_file] Convert image to JPEG. Value is the JPEG-quality|
 |data/attachment_compress_file|No||int<0-9>|[Only applies to attach_file] Compress file to zip using zlib. Value is the zlib-compression-level|
 |data/attachment_resize_image|No||int%/intpx|[Only applies to attach_file] Resize image (and convert to jpeg). Value is either in percent (25%) or px (800px). When using px, you specify the new image width, the height is calculated using the original aspect-ratio.|
+|actions/[]|No||view/broadcast/http||
+|actions/[]/action|Yes||view/broadcast/http||
+|actions/[]/label|Yes||view/broadcast/http||
+|actions/[]/clear|No|false|true/false||
+|actions/[]view/url|Yes||url|URL to open on button-click|
 
 
 Please refer to the [ntfy documentation](https://docs.ntfy.sh/publish) for more information about those features.
@@ -91,9 +103,9 @@ Please refer to the [ntfy documentation](https://docs.ntfy.sh/publish) for more 
 Set a title, tags, message-priority, add a click-action and override the default topic:
 
 ```yaml
-service: notify.ntfy_notification
+action: notify.ntfy_notification
 data:
-  title: Homeassistant Notification
+  title: Home Assistant Notification
   message: Terrace door is open
   data:
     tags: door
@@ -105,12 +117,26 @@ data:
 Attach a local file (image), compress it and override the filename:
 
 ```yaml
-service: notify.ntfy_notification
+action: notify.ntfy_notification
 data:
-  title: Homeassistant Notification
+  title: Home Assistant Notification
   message: Movement in backyard detected
   data:
     attach_file: /media/local/cam0_latest_detection.png
     attachment_compress_image: 25
     attachment_filename: detection.jpg
+```
+
+Add view-action-button
+
+```yaml
+action: notify.ntfy_notification
+data:
+  title: Homeassistant Notification
+  message: Movement in backyard detected
+  data:
+    actions:
+      - action: view
+        label: "Open Home Assistant"
+        url: "https://myhomassistant.domain.tld"
 ```
