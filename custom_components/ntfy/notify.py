@@ -1,35 +1,23 @@
 """Ntfy notification service."""
 import logging
-from homeassistant.components.notify import (
-    ATTR_MESSAGE,
-    ATTR_TITLE,
-    ATTR_TITLE_DEFAULT,
-    ATTR_DATA,
-    PLATFORM_SCHEMA,
-    BaseNotificationService,
-)
-import homeassistant.helpers.config_validation as cv
-from homeassistant.exceptions import ServiceValidationError
-from homeassistant.exceptions import HomeAssistantError
-
-from tokenize import String
-from requests.auth import HTTPBasicAuth
-import requests
-import voluptuous as vol
-import urllib.parse
 from base64 import b64encode
 import os
 import zipfile
 from io import BytesIO
 import re
+import urllib.parse
+import requests
+import voluptuous as vol
 from PIL import Image
 
-# TODO: Move to const.py
-CONF_TOPIC = 'topic'
-CONF_ALLOW_TOPIC_OVERRIDE = 'allow_topic_override'
-CONF_TOKEN = 'token'
-CONF_ATTACHMENT_MAXSIZE = 'attachment_maxsize'
-
+from homeassistant.components.notify import (
+    ATTR_TITLE,
+    ATTR_TITLE_DEFAULT,
+    ATTR_DATA,
+    BaseNotificationService,
+)
+from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.const import (
     CONF_PASSWORD,
     CONF_USERNAME,
@@ -37,7 +25,12 @@ from homeassistant.const import (
     CONF_URL,
     CONF_AUTHENTICATION,
 )
-
+from .const import (
+    CONF_TOPIC,
+    CONF_ALLOW_TOPIC_OVERRIDE,
+    CONF_TOKEN,
+    CONF_ATTACHMENT_MAXSIZE
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -132,7 +125,7 @@ class NtfyNotificationService(BaseNotificationService):
             img = img.convert('RGB')
             img.save(attach_image_content_compressed, quality=data['attachment_compress_image'], format='jpeg')
         return attach_image_content_compressed
-    
+
     def _resize_image(self, data, attach_file_content):
         attach_image_content_resized = BytesIO()
         with Image.open(attach_file_content) as img:
@@ -175,7 +168,7 @@ class NtfyNotificationService(BaseNotificationService):
     def _validate_message_params(self, data):
         if "topic" in data and not self.allow_topic_override:
             raise ServiceValidationError('Trying to override topic without allow_topic_override being True')
-        
+
         if self.topic is None and 'topic' not in data:
             raise ServiceValidationError("No topic specified")
 
@@ -200,7 +193,7 @@ class NtfyNotificationService(BaseNotificationService):
 
         if "attachment_filename" in data and not ("attach_url" in data or "attach_file" in data):
             raise ServiceValidationError("attachment_filename cannot be specified without an attachment")
-        
+
         if "attach_file" not in data and ( 'attachment_compress_image' in data or 'attachment_compress_file' in data or 'attachment_resize_image' in data):
             raise ServiceValidationError("attachment_compress_image, attachment_compress_file, attachment_resize_image cannot be specified without attach_file")
 
