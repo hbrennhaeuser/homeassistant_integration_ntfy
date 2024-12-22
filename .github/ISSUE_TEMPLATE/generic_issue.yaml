@@ -1,0 +1,59 @@
+name: Generic Issue
+description: Open a generic issue
+# labels: []
+# title: ''
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to open this issue!
+  - type: input
+    id: home-assistant-core-version
+    attributes:
+      label: Home Assistant Core Version
+      description: Which version of Home Assistant are you running?
+      placeholder: ex. 2024-12-4
+    validations:
+      required: true
+  - type: input
+    id: home-assistant-core-installation-method
+    attributes:
+      label: Home Assistant Installation Method
+      description: How was your Home Assistant installed?
+      placeholder: ex. HA OS
+    validations:
+      required: true
+  - type: input
+    id: integration-version
+    attributes:
+      label: Integration Version
+      description: What version of the integration are you running?
+      placeholder: ex. v1.0.2
+    validations:
+      required: true
+  - type: dropdown
+    id: integration-installation-method
+    attributes:
+      label: How was the integration installed?
+      multiple: true
+      options:
+        - HACS
+        - Manual
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      value: "A bug happened!"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: "[Optional] Relevant log output"
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      render: shell
+    validations:
+      required: false
