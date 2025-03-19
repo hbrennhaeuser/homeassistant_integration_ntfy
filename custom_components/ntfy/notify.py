@@ -7,6 +7,7 @@ from io import BytesIO
 import re
 import urllib.parse
 import requests
+import urllib3
 import voluptuous as vol
 from PIL import Image
 
@@ -29,7 +30,12 @@ from .const import (
     CONF_TOPIC,
     CONF_ALLOW_TOPIC_OVERRIDE,
     CONF_TOKEN,
-    CONF_ATTACHMENT_MAXSIZE
+    CONF_ATTACHMENT_MAXSIZE,
+    DEFAULT_VERIFY_SSL,
+    DEFAULT_ALLOW_TOPIC_OVERRIDE,
+    DEFAULT_ATTACHMENT_MAXSIZE,
+    DEFAULT_REQUEST_TIMEOUT
+
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,59 +45,63 @@ def get_service(hass,config, discovery_info=None):
     return NtfyNotificationService(config)
 
 
-
 class NtfyNotificationService(BaseNotificationService):
     def __init__ (self, config):
         """Initialize the Ntfy notification service."""
-        self.request_timeout=5
+        self.request_timeout = DEFAULT_REQUEST_TIMEOUT
 
-        self.topic = None
-        if config.get(CONF_TOPIC) is not None:
-            self.topic = config.get(CONF_TOPIC)
-
-        self.url = config.get(CONF_URL)
+        config_schema = vol.Schema(
+            vol.All(
+                {
+                    vol.Optional('auth'): vol.In(['token', 'user-pass', None, False])
+                },
+                vol.Any(
+                    {
+                        vol.Required('auth'): 'token',
+                        vol.Required(CONF_TOKEN): str,
+                    },
+                    {
+                        vol.Required('auth'): 'user-pass',
+                        vol.Required(CONF_USERNAME): str,
+                        vol.Required(CONF_PASSWORD): str,
+                    },
+                    {
+                        vol.Optional('auth', default=None): vol.Any(None, False, str),
+                        vol.Optional(CONF_TOKEN): vol.Any(None, str),
+                        vol.Optional(CONF_USERNAME): vol.Any(None, str),
+                        vol.Optional(CONF_PASSWORD): vol.Any(None, str),
+                    }
+                ),
+                # common fields
+                {
+                    vol.Required(CONF_TOPIC): str,
+                    vol.Required(CONF_URL): vol.Url(),
+                    vol.Optional(CONF_VERIFY_SSL): bool,
+                    vol.Optional(CONF_ALLOW_TOPIC_OVERRIDE): bool,
+                    vol.Optional(CONF_ATTACHMENT_MAXSIZE): vol.Coerce(int),
+                }
+            ), extra=vol.ALLOW_EXTRA )
+    
         try:
-            vol.Schema(vol.Url())(self.url)
-        except vol.MultipleInvalid as e:
-            raise ServiceValidationError('url syntax invalid') from e
+            config_schema(config)
+        except Exception as e:
+            raise ServiceValidationError from e
 
-        # TODO: Set default values using constants
-        self.verifyssl = True
-        if config.get(CONF_VERIFY_SSL) is not None:
-            self.verifyssl = bool(config.get(CONF_VERIFY_SSL))
+        self.auth = config.get(CONF_AUTHENTICATION, False)
+        self.username = config.get(CONF_USERNAME, None)
+        self.password = config.get(CONF_PASSWORD, None)
+        self.token = config.get(CONF_TOKEN, None)
 
-        self.allow_topic_override = False
-        if config.get(CONF_ALLOW_TOPIC_OVERRIDE) is not None:
-            self.allow_topic_override = bool(config.get(CONF_ALLOW_TOPIC_OVERRIDE))
+        self.topic = config.get(CONF_TOPIC)
+        self.url = config.get(CONF_URL)
+        self.verifyssl = config.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL)
+        self.allow_topic_override = config.get(CONF_ALLOW_TOPIC_OVERRIDE, DEFAULT_ALLOW_TOPIC_OVERRIDE)
+        self.attachment_maxsize = config.get(CONF_ATTACHMENT_MAXSIZE, DEFAULT_ATTACHMENT_MAXSIZE)
 
-        self.attachment_maxsize = 15728640
-        if config.get(CONF_ATTACHMENT_MAXSIZE) is not None:
-            # TODO: Syntax validation
-            self.attachment_maxsize = self._parse_attachment_maxsize(config.get(CONF_ATTACHMENT_MAXSIZE))
+        if not self.verifyssl:
+            _LOGGER.warning("InsecureRequestWarning: Unverified HTTPS request could be made to '%s'. Setting %s to True is recommended. All further InsecureRequestWarning will be suppressed!", self.url, CONF_VERIFY_SSL)
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-
-        self.auth = False
-        if config.get(CONF_AUTHENTICATION) is not None:
-            schema_authentication = ['user-pass','token']
-            if config.get(CONF_AUTHENTICATION) not in schema_authentication:
-                raise SyntaxError('Invalid value specified for authentication')
-            self.auth = config.get(CONF_AUTHENTICATION)
-
-        self.username = None
-        self.password = None
-        self.token = None
-        if self.auth is not False:
-            if self.auth == 'user-pass':
-                if config.get(CONF_USERNAME) is None:
-                    raise ServiceValidationError("Authentication username is missing")
-                if config.get(CONF_PASSWORD) is None:
-                    raise ServiceValidationError("Authentication password is missing")
-                self.username = config.get(CONF_USERNAME)
-                self.password = config.get(CONF_PASSWORD)
-            elif self.auth == 'token':
-                if config.get(CONF_TOKEN) is None:
-                    raise ServiceValidationError('Authentication token is missing')
-                self.token = config.get(CONF_TOKEN)
 
     def _parse_attachment_maxsize(self, size=None):
         attachment_maxsize_bytes = None
@@ -106,13 +116,10 @@ class NtfyNotificationService(BaseNotificationService):
             match unit:
                 case 'b' | 'B':
                     attachment_maxsize_bytes = value
-
                 case 'k' | 'K':
                     attachment_maxsize_bytes = value * 1024
-
                 case 'm' | 'M':
                     attachment_maxsize_bytes = value * (1024 ** 2)
-
                 case _:
                     raise ServiceValidationError(f"Unknown unit {unit}")
 
@@ -125,6 +132,7 @@ class NtfyNotificationService(BaseNotificationService):
             img = img.convert('RGB')
             img.save(attach_image_content_compressed, quality=data['attachment_compress_image'], format='jpeg')
         return attach_image_content_compressed
+
 
     def _resize_image(self, data, attach_file_content):
         attach_image_content_resized = BytesIO()
@@ -152,11 +160,18 @@ class NtfyNotificationService(BaseNotificationService):
             img.save(attach_image_content_resized, quality=100, format='jpeg')
         return attach_image_content_resized
 
+
     def _compress_file(self, data, attach_file_content, attach_file_name):
         attach_file_content_compressed = BytesIO()
         with zipfile.ZipFile(attach_file_content_compressed, mode="a", compression=zipfile.ZIP_DEFLATED, compresslevel=data['attachment_compress_file']) as zip_file:
             zip_file.writestr(attach_file_name, attach_file_content.getvalue())
         return attach_file_content_compressed.getvalue()
+
+
+    def _escape_header_value(self, value):
+        decoded_value = urllib.parse.unquote(value)
+        escaped_value = urllib.parse.quote(decoded_value)
+        return escaped_value
 
 
     def _validate_filesize(self, data):
@@ -165,56 +180,104 @@ class NtfyNotificationService(BaseNotificationService):
             raise HomeAssistantError(f"Specified file '{data['attach_file']}', {attach_file_size}B is larger than specified max size {self.attachment_maxsize}B")
         return True
 
+
+    def _validate_message_params_action_view(self, action):
+        view_schema = vol.Schema({
+            vol.Required('action'): str,
+            vol.Required('label'): str,
+            vol.Required('url'): vol.Url(),
+            vol.Optional('clear', default=False): bool,
+        })
+        try:
+            view_schema(action)
+        except Exception as e:
+            raise ServiceValidationError from e
+
+
+    def _validate_message_params_action_broadcast(self, action):
+        broadcast_schema = vol.Schema({
+            vol.Required('action'): str,
+            vol.Required('label'): str,
+            vol.Optional('intent'): str,
+            vol.Optional('extras', default={}): vol.Schema({str: str}),
+        })
+        try:
+            broadcast_schema(action)
+        except Exception as e:
+            raise ServiceValidationError from e
+
+
+    def _validate_message_params_action_http(self, action):
+        http_schema = vol.Schema({
+            vol.Required('action'): str,
+            vol.Required('label'): str,
+            vol.Required('url'): vol.Url(),
+            vol.Optional('method', default='GET'): vol.In(['GET', 'POST', 'PUT', 'DELETE']),
+            vol.Optional('headers', default={}): vol.Schema({str: str}),
+            vol.Optional('body', default=''): str,
+            vol.Optional('clear', default=False): bool,
+        })
+        try:
+            http_schema(action)
+        except Exception as e:
+            raise ServiceValidationError from e
+
+
     def _validate_message_params(self, data):
+        schema = vol.Schema({
+            vol.Optional("topic"): str,
+            vol.Optional("priority"): vol.In(['max', 'urgent', 'high', 'default', 'low', 'min']),
+            vol.Optional("click"): vol.Url(),
+            vol.Optional("tags"): str,
+            vol.Optional("actions"): object,
+            vol.Optional("attach_url"): vol.Url(),
+            vol.Optional("attach_file"): vol.All(str, vol.IsFile),
+            vol.Optional("attachment_filename"): str,
+            vol.Optional("attachment_compress_image"): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
+            vol.Optional("attachment_compress_file"): vol.All(vol.Coerce(int), vol.Range(min=0, max=9)),
+            vol.Optional("attachment_resize_image"): vol.Match(r'^[0-9]+(px|%)$'),
+        })
+
+        try:
+            schema(data)
+        except Exception as e:
+            raise ServiceValidationError from e
+
         if "topic" in data and not self.allow_topic_override:
             raise ServiceValidationError('Trying to override topic without allow_topic_override being True')
 
         if self.topic is None and 'topic' not in data:
             raise ServiceValidationError("No topic specified")
 
-        # TODO: validate tag format
-
-        schema_priority = ['max','urgent','high','default','low','min']
-        if "priority" in data and str(data["priority"]) not in schema_priority:
-                raise ServiceValidationError('Incorrect value for attribute priority given')
-
-        if 'click' in data:
-            schema_url = vol.Schema(vol.Url())
-            try:
-                schema_url(data["click"])
-            except vol.MultipleInvalid as e:
-                raise ServiceValidationError('expected a URL for attribute click') from e
-
         if "attach_url" in data and "attach_file" in data:
             raise ServiceValidationError("attach_url and attach_file cannot be specified at the same time")
-
-        if 'attach_file' in data and not os.access(data['attach_file'], os.R_OK):
-            raise HomeAssistantError(f"Specified file '{data['attach_file']}' is not readable")
 
         if "attachment_filename" in data and not ("attach_url" in data or "attach_file" in data):
             raise ServiceValidationError("attachment_filename cannot be specified without an attachment")
 
-        if "attach_file" not in data and ( 'attachment_compress_image' in data or 'attachment_compress_file' in data or 'attachment_resize_image' in data):
+        if "attach_file" not in data and ('attachment_compress_image' in data or 'attachment_compress_file' in data or 'attachment_resize_image' in data):
             raise ServiceValidationError("attachment_compress_image, attachment_compress_file, attachment_resize_image cannot be specified without attach_file")
 
-        if 'attachment_compress_image' in data and not isinstance(data['attachment_compress_image'], int):
-            raise ServiceValidationError("attachment_compress_image is not an integer")
+        if "attach_file" in data and ('attachment_compress_image' in data or 'attachment_resize_image' in data):
+            try:
+                with Image.open(data['attach_file']) as img:
+                    img.verify()
+            except (IOError, SyntaxError) as e:
+                raise ServiceValidationError("attach_file does not seem to be an image-file, unable to open with PIL") from e
 
-        if 'attachment_compress_image' in data and (data['attachment_compress_image'] < 0 or data['attachment_compress_image'] > 100):
-            raise ServiceValidationError("attachment_compress_image < 0 or > 100")
-
-        if 'attachment_compress_file' in data and not isinstance(data['attachment_compress_file'],int):
-            raise ServiceValidationError("attachment_compress_file is not an integer")
-
-        if 'attachment_compress_file' in data and (data['attachment_compress_file'] < 0 or data['attachment_compress_file'] > 9):
-            raise ServiceValidationError("attachment_compress_file < 0 or > 9")
-
-        if 'attachment_resize_image' in data and not re.match(r'^[0-9]+(px|%)$', data['attachment_resize_image']):
-            raise ServiceValidationError("attachment_compress_image format is not valid")
-
-        # TODO: Catch attachment_compress_image and attachment_resize_image being used with non-image files
+        if 'actions' in data:
+            for action in data.get("actions", []):
+                if action.get('action', '') == 'view':
+                    self._validate_message_params_action_view(action)
+                elif action.get('action', '') == 'broadcast':
+                    self._validate_message_params_action_broadcast(action)
+                elif action.get('action', '') == 'http':
+                    self._validate_message_params_action_http(action)
+                else:
+                    raise ServiceValidationError(f"unknown action type {action}")
 
         return True
+
 
     def _build_actions_header_view(self, action):
         tmp_header: str = ''
@@ -268,7 +331,6 @@ class NtfyNotificationService(BaseNotificationService):
 
         for action in data.get("actions", []):
             tmp_header: str = ''
-            #TODO: Schema validation
             #TODO: Ensure escaped special characters
             if action.get('action', '') == 'view':
                 tmp_header = self._build_actions_header_view(action)
@@ -281,12 +343,14 @@ class NtfyNotificationService(BaseNotificationService):
 
         return header_x_actions
 
+
     def _get_topic(self, data):
         topic = self.topic
         if "topic" in data:
             topic=data["topic"]
 
         return topic
+
 
     def _get_auth(self):
         auth_header=None
@@ -295,6 +359,7 @@ class NtfyNotificationService(BaseNotificationService):
         elif self.auth == 'token':
             auth_header = 'Bearer ' + self.token
         return auth_header
+
 
     def send_message(self, message="", **kwargs):
         """Send message"""
@@ -306,13 +371,10 @@ class NtfyNotificationService(BaseNotificationService):
 
         # --
         self._validate_message_params(data)
-        url=str(self.url) + '/' + urllib.parse.quote(self._get_topic(data))
+        url = '/'.join([self.url, urllib.parse.quote(self._get_topic(data))])
         req_headers['Message'] = message.encode('utf-8')
 
-
-
         # --
-
         if title is not None:
             req_headers["Title"] = title.encode('utf-8')
 
@@ -326,11 +388,9 @@ class NtfyNotificationService(BaseNotificationService):
             req_headers["Click"] = data["click"].encode('utf-8')
 
         if "attachment_filename" in data:
-            # TODO: syntax validation
             req_headers["Filename"] = data["attachment_filename"].encode('utf-8')
 
         if "attach_url" in data:
-            # TODO: syntax validation
             req_headers["Attach"] = data["attach_url"].encode('utf-8')
 
         if "attach_file" in data:
@@ -361,10 +421,13 @@ class NtfyNotificationService(BaseNotificationService):
         # --
         req_headers['Authorization'] = self._get_auth()
 
-        requests.put(
-            url=url,
-            data=req_data,
-            headers=req_headers,
-            verify=self.verifyssl,
-            timeout=self.request_timeout
-        )
+        try:
+            requests.put(
+                url=url,
+                data=req_data,
+                headers=req_headers,
+                verify=self.verifyssl,
+                timeout=self.request_timeout
+            )
+        except Exception as e:
+            raise HomeAssistantError from e
