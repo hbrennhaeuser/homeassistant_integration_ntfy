@@ -306,22 +306,25 @@ class NtfyNotificationService(BaseNotificationService):
 
 
     def _build_actions_header_http(self, action):
+        _LOGGER.debug("action: %s", action)
         tmp_header:str = ''
         tmp_header += f"http, {action['label']}, {action['url']}"
 
         if action.get('method', None):
             tmp_header +=f", method={action.get('method')}"
-
+               
         if action.get('headers', []):
-            for key, value in action.get('extras').items():
+            for key, value in action.get('headers').items():
                 tmp_header += f", headers.{key}={value}"
-
+        
         if action.get('clear', False):
             tmp_header += ', clear=true'
 
         if action.get('body', None):
-            body = action.get('body','').replace('"', '\\"').replace("'", "\\'").replace('=', '\\=')
+            body = action.get('body','').replace('"', '\"').replace("'", "\'").replace('=', '\=')
             tmp_header += f", body={body}"
+
+        _LOGGER.debug("Tmp header: %s", tmp_header)
 
         return tmp_header
 
