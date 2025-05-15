@@ -375,7 +375,9 @@ class NtfyNotificationService(BaseNotificationService):
         # --
         self._validate_message_params(data)
         url = '/'.join([self.url, urllib.parse.quote(self._get_topic(data))])
-        req_headers['Message'] = message.replace('\r\n', '\n').replace('\n', '\\n').encode('utf-8')
+        message = re.sub(r'(?<!\\)\r\n', r'\n', message)
+        message = re.sub(r'(?<!\\)\n', r'\\n', message)
+        req_headers['Message'] = message.encode('utf-8')
 
         # --
         if title is not None:
