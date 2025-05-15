@@ -321,7 +321,7 @@ class NtfyNotificationService(BaseNotificationService):
             tmp_header += ', clear=true'
 
         if action.get('body', None):
-            body = action.get('body','').replace('"', '\"').replace("'", "\'").replace('=', '\=')
+            body = action.get('body','').replace('"', '\"').replace("'", "\'")
             tmp_header += f", body={body}"
 
         _LOGGER.debug("Tmp header: %s", tmp_header)
