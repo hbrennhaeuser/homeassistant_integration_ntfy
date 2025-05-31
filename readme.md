@@ -100,6 +100,9 @@ Please refer to the [ntfy documentation](https://docs.ntfy.sh/publish) for more 
 
 ## Usage examples
 
+> [!NOTE]  
+> As of 2025/05 many advanced features like attached images and action-buttons are not available on the IOS-App.
+
 Set a title, tags, message-priority, add a click-action and override the default topic:
 
 ```yaml
@@ -139,4 +142,24 @@ data:
       - action: view
         label: "Open Home Assistant"
         url: "https://myhomassistant.domain.tld"
+```
+
+Interact with homeassistant through view-action-buttons
+
+```yaml
+action: notify.ntfy_notification
+data:
+  title: Homeassistant Notification
+  message: Lights in living room turned off
+  data:
+    actions:
+      - action: http
+        label: Turn lights on
+        method: POST
+        url: https://https-address-of-ha/api/services/light/turn_on
+        headers:
+          Authorization: >-
+            Bearer 1234567890abcde...
+          Content-type: application/json
+        body: "{\"entity_id\": \"light.living_room_lights\"}"
 ```
