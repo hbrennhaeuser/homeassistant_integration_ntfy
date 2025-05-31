@@ -9,7 +9,7 @@ Authentication, tags, image- and file-attachments, click, url and action-buttons
   <img src=".github/images/screenshot-android-1.jpeg" height="320">
 </p>
 
-> **Warning**: The `main` branch is under active development and may not be stable. For the latest stable release, please refer to the [v1.0.2 release](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/releases/tag/v1.0.2) and the [v1.0.2 branch/tag](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/tree/v1.0.2).
+> :warning: **Warning**: The `main` branch is under active development and may not be stable. For the latest stable release, please refer to the [v1.0.2 release](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/releases/tag/v1.0.2) and the [v1.0.2 branch/tag](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/tree/v1.0.2).
 
 ## Installation
 
@@ -70,7 +70,7 @@ Call the notification service anywhere in Homeassistant:
 Minimal call:
 
 ```yaml
-service: notify.ntfy_notification
+action: notify.ntfy_notification
 data:
   message: Terrace door is open
 ```
