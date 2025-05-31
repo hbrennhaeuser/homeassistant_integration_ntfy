@@ -52,34 +52,34 @@ class NtfyNotificationService(BaseNotificationService):
 
         config_schema = vol.Schema(
             vol.All(
+            {
+                vol.Optional('auth'): vol.In(['token', 'user-pass', None, False])
+            },
+            vol.Any(
                 {
-                    vol.Optional('auth'): vol.In(['token', 'user-pass', None, False])
+                vol.Required('auth'): 'token',
+                vol.Required(CONF_TOKEN): str,
                 },
-                vol.Any(
-                    {
-                        vol.Required('auth'): 'token',
-                        vol.Required(CONF_TOKEN): str,
-                    },
-                    {
-                        vol.Required('auth'): 'user-pass',
-                        vol.Required(CONF_USERNAME): str,
-                        vol.Required(CONF_PASSWORD): str,
-                    },
-                    {
-                        vol.Optional('auth', default=None): vol.Any(None, False, str),
-                        vol.Optional(CONF_TOKEN): vol.Any(None, str),
-                        vol.Optional(CONF_USERNAME): vol.Any(None, str),
-                        vol.Optional(CONF_PASSWORD): vol.Any(None, str),
-                    }
-                ),
-                # common fields
                 {
-                    vol.Required(CONF_TOPIC): str,
-                    vol.Required(CONF_URL): vol.Url(),
-                    vol.Optional(CONF_VERIFY_SSL): bool,
-                    vol.Optional(CONF_ALLOW_TOPIC_OVERRIDE): bool,
-                    vol.Optional(CONF_ATTACHMENT_MAXSIZE): vol.Coerce(int),
+                vol.Required('auth'): 'user-pass',
+                vol.Required(CONF_USERNAME): str,
+                vol.Required(CONF_PASSWORD): str,
+                },
+                {
+                vol.Optional('auth', default=None): vol.Any(None, False, str),
+                vol.Optional(CONF_TOKEN): vol.Any(None, str),
+                vol.Optional(CONF_USERNAME): vol.Any(None, str),
+                vol.Optional(CONF_PASSWORD): vol.Any(None, str),
                 }
+            ),
+            # common fields
+            {
+                vol.Required(CONF_TOPIC): str,
+                vol.Required(CONF_URL): vol.Url(),
+                vol.Optional(CONF_VERIFY_SSL): bool,
+                vol.Optional(CONF_ALLOW_TOPIC_OVERRIDE): bool,
+                vol.Optional(CONF_ATTACHMENT_MAXSIZE): vol.Match(r'^\d+([bBkKmM]?)$'),
+            }
             ), extra=vol.ALLOW_EXTRA )
     
         try:
