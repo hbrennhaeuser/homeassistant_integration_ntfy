@@ -1,15 +1,22 @@
-# Homeassistant Integration: Notify via ntfy.sh / selfhosted ntfy-server
+# Home Assistant Integration: Notify via ntfy.sh / selfhosted ntfy-server
 [![Release](https://img.shields.io/github/v/release/hbrennhaeuser/homeassistant_integration_ntfy.svg?color=success)](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/releases/latest) [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration) ![hacs_validation](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/actions/workflows/hacs_validation.yml/badge.svg?branch=main) ![validate_with_hassfest](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/actions/workflows/validate_with_hassfest.yml/badge.svg?branch=main)
 
 This custom component allows you to send notifications through [ntfy.sh](https://ntfy.sh/) or selfhosted ntfy-servers.
+
 Authentication, tags, image- and file-attachments, click, url and action-buttons are supported.
+
+File attachments can be ZIP-compressed, and images can be resized and compressed as JPEGs.
 
 <p>
   <img src=".github/images/screenshot-desktop-example1.png" height="320">
   <img src=".github/images/screenshot-android-1.jpeg" height="320">
 </p>
 
-> :warning: **Warning**: The `main` branch is under active development and may not be stable. For the latest stable release, please refer to the [v1.0.2 release](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/releases/tag/v1.0.2) and the [v1.0.2 branch/tag](https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/tree/v1.0.2).
+> [!NOTE]
+> The `main` branch represents the latest stable release. Pre-releases and active development happen on the `development` branch.
+
+> [!CAUTION]
+> This integration overwrites the [new (2025.05) core integration](https://www.home-assistant.io/integrations/ntfy/). As long as this integration is active, the core-integration cannot be used. Please make sure to remove old config entries if you did use the core-integration before.
 
 ## Installation
 
@@ -17,20 +24,20 @@ The recommended way to install this integration is through HACS.
 
 ### HACS
 
-Add this repository as a custom repository in hacs (category: integration).
-When the custom repository is added you can search for and install this integration.
+Add this repository as a custom repository in HACS (category: integration).
+Once the custom repository is added you can search for and install this integration.
 
-Make sure to restart Homeassistant after the installation.
+Make sure to restart Home Assistant after the installation.
 
 ### Manual
 
-Copy custom_components/ntfy to config/custom_components/ntfy.
+Copy `custom_components/ntfy` to `config/custom_components/ntfy`.
 
-Make sure to restart Homeassistant after the installation.
+Make sure to restart Home Assistant after the installation.
 
 ## Configuration
 
-Define a new ntfy notification-service in configuration.yaml:
+Define a new ntfy notification service in `configuration.yaml`:
 
 Example:
 
@@ -39,12 +46,12 @@ notify:
     - name: ntfy_notification
       platform: ntfy
       authentication: 'token'
-      #username: 'user' 
-      #password: 'password' 
+      #username: 'user'
+      #password: 'password'
       token: 'tk_odlbse211n74kf8N7h4qhqvj409qb'
       topic: 'mytopic'
-      url: 'https://ntfy.domain.tld' 
-      #verify_ssl: True 
+      url: 'https://ntfy.domain.tld'
+      #verify_ssl: True
       allow_topic_override: True
       #attachment_maxsize: 300K
 ```
@@ -65,7 +72,7 @@ Options:
 
 ## Usage
 
-Call the notification service anywhere in Homeassistant:
+Call the notification service anywhere in Home Assistant:
 
 Minimal call:
 
@@ -100,10 +107,10 @@ Please refer to the [ntfy documentation](https://docs.ntfy.sh/publish) for more 
 
 ## Usage examples
 
-> [!NOTE]  
-> As of 2025/05 many advanced features like attached images and action-buttons are not available on the IOS-App.
+> [!NOTE]
+> As of May 2025, some advanced features like image attachments or action buttons may not be available on the iOS app.
 
-Set a title, tags, message-priority, add a click-action and override the default topic:
+### Example 1: Set a title, tags, priority, click action, and override the topic:
 
 ```yaml
 action: notify.ntfy_notification
@@ -117,7 +124,7 @@ data:
     topic: myothertopic
 ```
 
-Attach a local file (image), compress it and override the filename:
+### Example 2: Attach a local file (image), compress it, and override the filename
 
 ```yaml
 action: notify.ntfy_notification
@@ -130,12 +137,12 @@ data:
     attachment_filename: detection.jpg
 ```
 
-Add view-action-button
+### Example 3: Add a view-action-button
 
 ```yaml
 action: notify.ntfy_notification
 data:
-  title: Homeassistant Notification
+  title: Home Assistant Notification
   message: Movement in backyard detected
   data:
     actions:
@@ -144,12 +151,12 @@ data:
         url: "https://myhomassistant.domain.tld"
 ```
 
-Interact with homeassistant through view-action-buttons
+### Example 4: Interact with Home Assistant through view-action-buttons
 
 ```yaml
 action: notify.ntfy_notification
 data:
-  title: Homeassistant Notification
+  title: Home Assistant Notification
   message: Lights in living room turned off
   data:
     actions:
