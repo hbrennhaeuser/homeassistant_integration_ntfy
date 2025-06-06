@@ -21,7 +21,7 @@ jobs:
         stale-pr-message: >
           This pull request has been automatically marked as stale because it has not had recent activity for 30 days. 
           If you believe this pull request is still relevant, please comment or interact with it to keep it open. 
-        days-before-stale: 30
+        days-before-stale: 21
         remove-stale-when-updated: true
         stale-issue-label: stale
         exempt-issue-labels: "pinned,security,note"
