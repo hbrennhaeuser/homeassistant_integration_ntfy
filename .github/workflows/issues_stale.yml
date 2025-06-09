@@ -16,10 +16,10 @@ jobs:
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         stale-issue-message: >
-          This issue has been automatically marked as stale because it has not had recent activity for 30 days. 
+          This issue has been automatically marked as stale because it has not had recent activity for 21 days. 
           If you believe this issue is still relevant, please comment or interact with it to keep it open. 
         stale-pr-message: >
-          This pull request has been automatically marked as stale because it has not had recent activity for 30 days. 
+          This pull request has been automatically marked as stale because it has not had recent activity for 21 days. 
           If you believe this pull request is still relevant, please comment or interact with it to keep it open. 
         days-before-stale: 21
         remove-stale-when-updated: true
