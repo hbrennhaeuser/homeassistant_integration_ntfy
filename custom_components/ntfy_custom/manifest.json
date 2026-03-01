@@ -1,6 +1,6 @@
 {
-  "domain": "ntfy",
-  "name": "ntfy",  
+  "domain": "ntfy_custom",
+  "name": "Ntfy custom Integration",  
   "bluetooth": [],
   "codeowners": ["@hbrennhaeuser"] ,
   "config_flow": false,
