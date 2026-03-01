@@ -16,9 +16,7 @@ File attachments can be ZIP-compressed, and images can be resized and compressed
 > The `main` branch represents the latest stable release. Pre-releases and active development happen on the `development` branch.
 
 > [!CAUTION]
-> Starting with Home Assistant 2025.05, a [Home Assistant core integration](https://www.home-assistant.io/integrations/ntfy/) for ntfy is available!
-> I recommend using the core integration unless you're already using this integration or need features that are specific to this custom integration.
-> That said, this integration is not deprecated. As long as no breaking API changes are introduced by ntfy, it should continue to function without issues. However, there is little reason to implement new features here, given that a core integration is actively maintained.
+> This integration overwrites the [new (2025.05) core integration](https://www.home-assistant.io/integrations/ntfy/). As long as this integration is active, the core-integration cannot be used. Please make sure to remove old config entries if you did use the core-integration before.
 
 ## Installation
 
@@ -46,7 +44,7 @@ Example:
 ```yaml
 notify:
     - name: ntfy_notification
-      platform: ntfy_custom
+      platform: ntfy
       authentication: 'token'
       #username: 'user'
       #password: 'password'
