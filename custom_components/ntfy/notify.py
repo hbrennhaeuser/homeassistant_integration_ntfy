@@ -231,7 +231,7 @@ class NtfyNotificationService(BaseNotificationService):
             vol.Optional("tags"): str,
             vol.Optional("actions"): object,
             vol.Optional("attach_url"): vol.Url(),
-            vol.Optional("attach_file"): vol.All(str, vol.IsFile),
+            vol.Optional("attach_file"): vol.All(str, vol.IsFile()),
             vol.Optional("attachment_filename"): str,
             vol.Optional("attachment_compress_image"): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
             vol.Optional("attachment_compress_file"): vol.All(vol.Coerce(int), vol.Range(min=0, max=9)),
