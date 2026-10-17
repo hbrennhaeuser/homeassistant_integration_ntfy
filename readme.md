@@ -92,7 +92,7 @@ data:
 |data/topic|No||topic|Override the default topic if allow_topic_override is True|
 |data/attach_url|No||url|URL to file/image|
 |data/attach_file|No||file-path|Path to local file|
-|data/attachment_filename|No||filename|Filename. If compression is active, this applies to the final compressed file.|
+|data/attachment_filename|No||filename|Filename. When compressing or resizing, the extension is changed to `.jpg` or `.zip`.|
 |data/attachment_compress_image|No||int<0-100>|[Only applies to attach_file] Convert image to JPEG. Value is the JPEG-quality|
 |data/attachment_compress_file|No||int<0-9>|[Only applies to attach_file] Compress file to zip using zlib. Value is the zlib-compression-level|
 |data/attachment_resize_image|No||int%/intpx|[Only applies to attach_file] Resize image (and convert to jpeg). Value is either in percent (25%) or px (800px). When using px, you specify the new image width, the height is calculated using the original aspect-ratio.|
