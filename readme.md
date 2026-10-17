@@ -7,6 +7,12 @@ Authentication, tags, image- and file-attachments, click, url and action-buttons
 
 File attachments can be ZIP-compressed, and images can be resized and compressed as JPEGs.
 
+> [!IMPORTANT]
+> This integration has been superseded by the [core ntfy integration](https://www.home-assistant.io/integrations/ntfy/). If you are new here, use the core integration instead.
+
+> [!CAUTION]
+> This integration replaces the core integration while installed. You cannot use both simultaneously.
+
 <p>
   <img src=".github/images/screenshot-desktop-example1.png" height="320">
   <img src=".github/images/screenshot-android-1.jpeg" height="320">
@@ -14,9 +20,6 @@ File attachments can be ZIP-compressed, and images can be resized and compressed
 
 > [!NOTE]
 > The `main` branch represents the latest stable release. Pre-releases and active development happen on the `development` branch.
-
-> [!CAUTION]
-> This integration overwrites the [new (2025.05) core integration](https://www.home-assistant.io/integrations/ntfy/). As long as this integration is active, the core-integration cannot be used. Please make sure to remove old config entries if you did use the core-integration before.
 
 ## Installation
 
