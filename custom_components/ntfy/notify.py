@@ -126,15 +126,17 @@ class NtfyNotificationService(BaseNotificationService):
         return attachment_maxsize_bytes
 
 
-    def _compress_image(self, data, attach_file_content):
+    def _compress_image(self, data, attach_file_content, attachment_filename=None):
         attach_image_content_compressed = BytesIO()
         with Image.open(attach_file_content) as img:
             img = img.convert('RGB')
             img.save(attach_image_content_compressed, quality=data['attachment_compress_image'], format='jpeg')
-        return attach_image_content_compressed
+        if attachment_filename is not None:
+            attachment_filename = os.path.splitext(attachment_filename)[0] + '.jpg'
+        return attach_image_content_compressed, attachment_filename
 
 
-    def _resize_image(self, data, attach_file_content):
+    def _resize_image(self, data, attach_file_content, attachment_filename=None):
         attach_image_content_resized = BytesIO()
         with Image.open(attach_file_content) as img:
             img = img.convert('RGB')
@@ -158,14 +160,18 @@ class NtfyNotificationService(BaseNotificationService):
             img = img.resize((int(width_new), int(height_new)))
 
             img.save(attach_image_content_resized, quality=100, format='jpeg')
-        return attach_image_content_resized
+        if attachment_filename is not None:
+            attachment_filename = os.path.splitext(attachment_filename)[0] + '.jpg'
+        return attach_image_content_resized, attachment_filename
 
 
-    def _compress_file(self, data, attach_file_content, attach_file_name):
+    def _compress_file(self, data, attach_file_content, attach_file_name, attachment_filename=None):
         attach_file_content_compressed = BytesIO()
         with zipfile.ZipFile(attach_file_content_compressed, mode="a", compression=zipfile.ZIP_DEFLATED, compresslevel=data['attachment_compress_file']) as zip_file:
             zip_file.writestr(attach_file_name, attach_file_content.getvalue())
-        return attach_file_content_compressed
+        if attachment_filename is not None:
+            attachment_filename = os.path.splitext(attachment_filename)[0] + '.zip'
+        return attach_file_content_compressed, attachment_filename
 
 
     def _escape_header_value(self, value):
@@ -392,8 +398,7 @@ class NtfyNotificationService(BaseNotificationService):
         if "click" in data:
             req_headers["Click"] = data["click"].encode('utf-8')
 
-        if "attachment_filename" in data:
-            req_headers["Filename"] = data["attachment_filename"].encode('utf-8')
+        attachment_filename = data.get("attachment_filename")
 
         if "attach_url" in data:
             req_headers["Attach"] = data["attach_url"].encode('utf-8')
@@ -408,15 +413,18 @@ class NtfyNotificationService(BaseNotificationService):
                 attach_file_content = BytesIO(file.read())
 
             if "attachment_resize_image" in data:
-                attach_file_content = self._resize_image(data, attach_file_content)
+                attach_file_content, attachment_filename = self._resize_image(data, attach_file_content, attachment_filename)
 
             if "attachment_compress_image" in data:
-                attach_file_content = self._compress_image(data, attach_file_content)
+                attach_file_content, attachment_filename = self._compress_image(data, attach_file_content, attachment_filename)
 
             elif "attachment_compress_file" in data:
-                attach_file_content = self._compress_file(data, attach_file_content, attach_file_name)
+                attach_file_content, attachment_filename = self._compress_file(data, attach_file_content, attach_file_name, attachment_filename)
 
             req_data = attach_file_content.getvalue()
+
+        if attachment_filename is not None:
+            req_headers["Filename"] = attachment_filename.encode('utf-8')
 
         if "actions" in data:
             header_x_actions = self._build_actions_header(data)

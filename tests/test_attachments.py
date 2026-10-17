@@ -82,3 +82,25 @@ def test_resize_image_keeps_aspect_ratio(ntfy_service, mock_put, png_file, resiz
 
     with Image.open(BytesIO(_sent_body(mock_put))) as img:
         assert img.size == expected_size
+
+
+@pytest.mark.parametrize(
+    ("filename", "processing", "expected_filename"),
+    [
+        ("cam.png", {}, "cam.png"),
+        ("cam.png", {"attachment_compress_image": 50}, "cam.jpg"),
+        ("cam.png", {"attachment_resize_image": "50%"}, "cam.jpg"),
+        ("cam.jpeg", {"attachment_compress_image": 50}, "cam.jpg"),
+        ("cam.png", {"attachment_compress_file": 5}, "cam.zip"),
+        ("cam.zip", {"attachment_compress_file": 5}, "cam.zip"),
+        ("cam.png", {"attachment_resize_image": "50%", "attachment_compress_file": 5}, "cam.zip"),
+        ("cam.png", {"attachment_compress_image": 50, "attachment_compress_file": 5}, "cam.jpg"),
+    ],
+)
+def test_attachment_filename_matches_sent_content(ntfy_service, mock_put, png_file, filename, processing, expected_filename):
+    ntfy_service.send_message(
+        "hello",
+        data={"attach_file": str(png_file), "attachment_filename": filename, **processing},
+    )
+
+    assert mock_put.call_args.kwargs["headers"]["Filename"] == expected_filename.encode("utf-8")
