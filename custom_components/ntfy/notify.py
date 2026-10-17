@@ -96,7 +96,7 @@ class NtfyNotificationService(BaseNotificationService):
         self.url = config.get(CONF_URL)
         self.verifyssl = config.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL)
         self.allow_topic_override = config.get(CONF_ALLOW_TOPIC_OVERRIDE, DEFAULT_ALLOW_TOPIC_OVERRIDE)
-        self.attachment_maxsize = config.get(CONF_ATTACHMENT_MAXSIZE, DEFAULT_ATTACHMENT_MAXSIZE)
+        self.attachment_maxsize = self._parse_attachment_maxsize(config.get(CONF_ATTACHMENT_MAXSIZE, DEFAULT_ATTACHMENT_MAXSIZE))
 
         if not self.verifyssl:
             _LOGGER.warning("InsecureRequestWarning: Unverified HTTPS request could be made to '%s'. Setting %s to True is recommended. All further InsecureRequestWarning will be suppressed!", self.url, CONF_VERIFY_SSL)
@@ -114,7 +114,7 @@ class NtfyNotificationService(BaseNotificationService):
             unit = search.group(2)
 
             match unit:
-                case 'b' | 'B':
+                case '' | 'b' | 'B':
                     attachment_maxsize_bytes = value
                 case 'k' | 'K':
                     attachment_maxsize_bytes = value * 1024
