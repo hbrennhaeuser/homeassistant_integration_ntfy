@@ -53,20 +53,20 @@ class NtfyNotificationService(BaseNotificationService):
         config_schema = vol.Schema(
             vol.All(
             {
-                vol.Optional('auth'): vol.In(['token', 'user-pass', None, False])
+                vol.Optional(CONF_AUTHENTICATION): vol.In(['token', 'user-pass', None, False])
             },
             vol.Any(
                 {
-                vol.Required('auth'): 'token',
+                vol.Required(CONF_AUTHENTICATION): 'token',
                 vol.Required(CONF_TOKEN): str,
                 },
                 {
-                vol.Required('auth'): 'user-pass',
+                vol.Required(CONF_AUTHENTICATION): 'user-pass',
                 vol.Required(CONF_USERNAME): str,
                 vol.Required(CONF_PASSWORD): str,
                 },
                 {
-                vol.Optional('auth', default=None): vol.Any(None, False, str),
+                vol.Optional(CONF_AUTHENTICATION, default=None): vol.Any(None, False),
                 vol.Optional(CONF_TOKEN): vol.Any(None, str),
                 vol.Optional(CONF_USERNAME): vol.Any(None, str),
                 vol.Optional(CONF_PASSWORD): vol.Any(None, str),
