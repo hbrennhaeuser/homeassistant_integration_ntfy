@@ -239,7 +239,7 @@ class NtfyNotificationService(BaseNotificationService):
         })
 
         try:
-            schema(data)
+            data = schema(data)
         except Exception as e:
             raise ServiceValidationError from e
 
@@ -276,7 +276,7 @@ class NtfyNotificationService(BaseNotificationService):
                 else:
                     raise ServiceValidationError(f"unknown action type {action}")
 
-        return True
+        return data
 
 
     def _build_actions_header_view(self, action):
@@ -373,7 +373,7 @@ class NtfyNotificationService(BaseNotificationService):
         req_headers={}
 
         # --
-        self._validate_message_params(data)
+        data = self._validate_message_params(data)
         url = '/'.join([self.url, urllib.parse.quote(self._get_topic(data))])
         message = re.sub(r'(?<!\\)\r\n', r'\n', message)
         message = re.sub(r'(?<!\\)\n', r'\\n', message)
