@@ -165,7 +165,7 @@ class NtfyNotificationService(BaseNotificationService):
         attach_file_content_compressed = BytesIO()
         with zipfile.ZipFile(attach_file_content_compressed, mode="a", compression=zipfile.ZIP_DEFLATED, compresslevel=data['attachment_compress_file']) as zip_file:
             zip_file.writestr(attach_file_name, attach_file_content.getvalue())
-        return attach_file_content_compressed.getvalue()
+        return attach_file_content_compressed
 
 
     def _escape_header_value(self, value):
