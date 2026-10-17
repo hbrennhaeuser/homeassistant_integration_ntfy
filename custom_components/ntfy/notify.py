@@ -85,7 +85,7 @@ class NtfyNotificationService(BaseNotificationService):
         try:
             config_schema(config)
         except Exception as e:
-            raise ServiceValidationError from e
+            raise ServiceValidationError(str(e)) from e
 
         self.auth = config.get(CONF_AUTHENTICATION, False)
         self.username = config.get(CONF_USERNAME, None)
@@ -191,7 +191,7 @@ class NtfyNotificationService(BaseNotificationService):
         try:
             view_schema(action)
         except Exception as e:
-            raise ServiceValidationError from e
+            raise ServiceValidationError(str(e)) from e
 
 
     def _validate_message_params_action_broadcast(self, action):
@@ -204,7 +204,7 @@ class NtfyNotificationService(BaseNotificationService):
         try:
             broadcast_schema(action)
         except Exception as e:
-            raise ServiceValidationError from e
+            raise ServiceValidationError(str(e)) from e
 
 
     def _validate_message_params_action_http(self, action):
@@ -220,7 +220,7 @@ class NtfyNotificationService(BaseNotificationService):
         try:
             http_schema(action)
         except Exception as e:
-            raise ServiceValidationError from e
+            raise ServiceValidationError(str(e)) from e
 
 
     def _validate_message_params(self, data):
@@ -241,7 +241,7 @@ class NtfyNotificationService(BaseNotificationService):
         try:
             data = schema(data)
         except Exception as e:
-            raise ServiceValidationError from e
+            raise ServiceValidationError(str(e)) from e
 
         if "topic" in data and not self.allow_topic_override:
             raise ServiceValidationError('Trying to override topic without allow_topic_override being True')
