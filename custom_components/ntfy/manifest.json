@@ -13,9 +13,9 @@
   "issue_tracker": "https://github.com/hbrennhaeuser/homeassistant_integration_ntfy/issues",
   "loggers":[],
   "mqtt": [],
-  "requirements": ["requests"],
+  "requirements": [],
   "ssdp": [],
   "usb": [],
-  "version": "1.2.0",
+  "version": "1.2.1",
   "zeroconf": []
 }
